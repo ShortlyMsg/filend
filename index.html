@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Filend - File Send</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+        .container {
+            max-width: 700px;
+            margin: auto;
+            padding: 70px;
+            border: 5px solid #008d86;
+            border-radius: 20px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Tek tıkla gönder, tek kodla al!</h2>
+    <h1>Dosya Gönder / Al</h1>
+    <style>
+        .buttontur {
+        background-color: #008d86;
+        border: 1px;
+        color: white;
+        padding: 20px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
+        cursor: pointer;
+        }
+        .buttonyel {
+        background-color: #ebdb01;
+        border: 1px;
+        color: white;
+        padding: 20px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
+        cursor: pointer;
+        }
+        .buttonblue {
+        background-color: #0004e7;
+        border: 1px;
+        color: white;
+        padding: 20px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
+        cursor: pointer;
+        }
+        .button4 {border-radius: 12px;}
+    </style>
+    
+    <button class="buttontur button4" onclick="showUpload()">Gönder</button>
+    
+    <button class="buttonyel button4" onclick="showDownload()">Al</button>
+
+    <!-- Dosya Yükleme Formu -->
+    <div id="uploadSection" class="hidden">
+        <h3>Dosya Yükle</h3>
+        <input type="file" id="fileInput"><br><br>
+        <button  class="buttonblue button4" onclick="uploadFile()">Gönder</button>
+        <p id="otpMessage"></p>
+    </div>
+
+    <!-- OTP ile Dosya İndirme Formu -->
+    <div id="downloadSection" class="hidden">
+        <h3>Tek Seferlik Şifre ile Dosya İndir</h3>
+        <input type="text" id="otpInput" placeholder="Tek seferlik kodu girin"><br><br>
+        <button onclick="downloadFile()">İndir</button>
+    </div>
+</div>
+
+<script>
+    function showUpload() {
+        document.getElementById('uploadSection').classList.remove('hidden');
+        document.getElementById('downloadSection').classList.add('hidden');
+    }
+
+    function showDownload() {
+        document.getElementById('uploadSection').classList.add('hidden');
+        document.getElementById('downloadSection').classList.remove('hidden');
+    }
+
+    function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            fetch('http://localhost:8080/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.otp) {
+                    document.getElementById('otpMessage').innerText = "Şifre: " + data.otp;
+                } else {
+                    document.getElementById('otpMessage').innerText = "Hata: OTP alınamadı.";
+                }
+            })
+            .catch(error => {
+                console.error('Hata:', error);
+                document.getElementById('otpMessage').innerText = "Sunucu ile iletişimde bir sorun var.";
+            });
+        }
+
+        function downloadFile() {
+            const otp = document.getElementById('otpInput').value;
+            if (!otp) {
+                alert('Lütfen OTP kodunu girin.');
+                return;
+            }
+
+            fetch(`http://localhost:8080/download/${otp}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Dosya bulunamadı veya sunucu hatası.');
+                    }
+                    return response.blob(); // Yanıtı blob olarak al
+                })
+                .then(blob => {
+                    // Dosyayı indirmek için bir bağlantı oluştur
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = "filend"+otp; // Dosyanın adını burada belirleyebilirsiniz
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                })
+                .catch(error => {
+                    console.error('Hata:', error);
+                    alert('Bir hata oluştu: ' + error.message);
+                });
+        }
+</script>
+
+</body>
+</html>
