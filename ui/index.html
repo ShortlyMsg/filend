@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Filend - File Send</title>
+    <link rel="stylesheet" href="styles.css">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -27,46 +28,7 @@
 <div class="container">
     <h2>Tek tıkla gönder, tek kodla al!</h2>
     <h1>Dosya Gönder / Al</h1>
-    <style>
-        .buttontur {
-        background-color: #008d86;
-        border: 1px;
-        color: white;
-        padding: 20px;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 16px;
-        margin: 4px 2px;
-        cursor: pointer;
-        }
-        .buttonyel {
-        background-color: #ebdb01;
-        border: 1px;
-        color: white;
-        padding: 20px;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 16px;
-        margin: 4px 2px;
-        cursor: pointer;
-        }
-        .buttonblue {
-        background-color: #0004e7;
-        border: 1px;
-        color: white;
-        padding: 20px;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 16px;
-        margin: 4px 2px;
-        cursor: pointer;
-        }
-        .button4 {border-radius: 12px;}
-    </style>
-    
+
     <button class="buttontur button4" onclick="showUpload()">Gönder</button>
     
     <button class="buttonyel button4" onclick="showDownload()">Al</button>
@@ -74,7 +36,7 @@
     <!-- Dosya Yükleme Formu -->
     <div id="uploadSection" class="hidden">
         <h3>Dosya Yükle</h3>
-        <input type="file" id="fileInput"><br><br>
+        <input  type="file" class="buttonpurple button4" ><br><br>
         <button  class="buttonblue button4" onclick="uploadFile()">Gönder</button>
         <p id="otpMessage"></p>
     </div>
@@ -82,8 +44,8 @@
     <!-- OTP ile Dosya İndirme Formu -->
     <div id="downloadSection" class="hidden">
         <h3>Tek Seferlik Şifre ile Dosya İndir</h3>
-        <input type="text" id="otpInput" placeholder="Tek seferlik kodu girin"><br><br>
-        <button onclick="downloadFile()">İndir</button>
+        <input type="text" id="otpInput" class="buttonpurple" placeholder="Tek seferlik kodu girin"><br><br>
+        <button class="buttonblue button4" onclick="downloadFile()">İndir</button>
     </div>
 </div>
 
@@ -140,7 +102,7 @@
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = "filend"+otp; // Dosyanın adını burada belirleyebilirsiniz
+                    a.download = fileName; // Dosyanın adını burada belirleyebilirsiniz
                     document.body.appendChild(a);
                     a.click();
                     a.remove();

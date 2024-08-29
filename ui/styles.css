@@ -1,0 +1,53 @@
+.buttontur {
+    background-color: #008d86;
+    border: 1px;
+    color: white;
+    padding: 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+    }
+.buttonyel {
+    background-color: #ebdb01;
+    border: 1px;
+    color: white;
+    padding: 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+    }
+.buttonblue {
+    background-color: #0004e7;
+    border: 1px;
+    color: white;
+    padding: 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+    }
+.buttonpurple {
+    background-color: #8e00e0;
+    border: 1px;
+    color: white;
+    padding: 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+    }
+.buttonpurple::placeholder {
+    color: #ffffff;
+    opacity: 1; 
+}
+.button4 {border-radius: 12px;}
