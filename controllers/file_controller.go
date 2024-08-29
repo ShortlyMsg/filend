@@ -36,7 +36,7 @@ func UploadFile(c *gin.Context) {
 	// OTP ve dosya adını kaydet
 	files[otp] = filePath
 
-	c.JSON(http.StatusOK, gin.H{"otp": otp})
+	c.JSON(http.StatusOK, gin.H{"otp": otp, "fileName": file.Filename})
 }
 
 func DownloadFile(c *gin.Context) {
@@ -48,5 +48,8 @@ func DownloadFile(c *gin.Context) {
 		return
 	}
 
+	fileName := filepath.Base(filePath)
+
+	c.Header("Content-Disposition", "attachment; filename="+fileName)
 	c.File(filePath)
 }

@@ -95,17 +95,19 @@
                     if (!response.ok) {
                         throw new Error('Dosya bulunamadı veya sunucu hatası.');
                     }
-                    return response.blob(); // Yanıtı blob olarak al
+                    const contentDisposition = response.headers.get('Content-Disposition');
+                    const fileName = contentDisposition ? contentDisposition.split('filename=')[1] : otp;
+                    return response.blob().then(blob => ({ blob, fileName })); // Yanıtı blob olarak al
                 })
-                .then(blob => {
+                .then(({blob, fileName}) => {
                     // Dosyayı indirmek için bir bağlantı oluştur
                     const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = otp; // Dosyanın adını burada belirleyebilirsiniz
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = fileName; // Dosyanın adı
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
                     window.URL.revokeObjectURL(url);
                 })
                 .catch(error => {
