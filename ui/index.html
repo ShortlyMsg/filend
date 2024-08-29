@@ -36,7 +36,7 @@
     <!-- Dosya Yükleme Formu -->
     <div id="uploadSection" class="hidden">
         <h3>Dosya Yükle</h3>
-        <input  type="file" class="buttonpurple button4" ><br><br>
+        <input  type="file" class="buttonpurple button4" id="fileInput"><br><br>
         <button  class="buttonblue button4" onclick="uploadFile()">Gönder</button>
         <p id="otpMessage"></p>
     </div>
@@ -102,7 +102,7 @@
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = fileName; // Dosyanın adını burada belirleyebilirsiniz
+                    a.download = otp; // Dosyanın adını burada belirleyebilirsiniz
                     document.body.appendChild(a);
                     a.click();
                     a.remove();
