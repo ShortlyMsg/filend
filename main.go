@@ -11,5 +11,5 @@ func main() {
 	fmt.Println(services.GenerateOneTimePassword())
 
 	router := routes.SetupRouter()
-	router.Run(":8080")
+	router.Run(":9090")
 }

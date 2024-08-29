@@ -103,7 +103,7 @@
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
 
-            fetch('http://localhost:8080/upload', {
+            fetch('http://localhost:9090/upload', {
                 method: 'POST',
                 body: formData
             })
@@ -128,7 +128,7 @@
                 return;
             }
 
-            fetch(`http://localhost:8080/download/${otp}`)
+            fetch(`http://localhost:9090/download/${otp}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Dosya bulunamadı veya sunucu hatası.');
