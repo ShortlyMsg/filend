@@ -21,6 +21,15 @@
         .hidden {
             display: none;
         }
+        .file-link {
+            display: block;
+            margin: 5px 0;
+            color: #007bff;
+            text-decoration: none;
+        }
+        .file-link:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -36,16 +45,18 @@
     <!-- Dosya Yükleme Formu -->
     <div id="uploadSection" class="hidden">
         <h3>Dosya Yükle</h3>
-        <input  type="file" class="buttonpurple button4" id="fileInput"><br><br>
-        <button  class="buttonblue button4" onclick="uploadFile()">Gönder</button>
+        <input type="file" class="buttonpurple button4" id="fileInput" multiple><br><br>
+        <button class="buttonblue button4" onclick="uploadFile()">Gönder</button>
         <p id="otpMessage"></p>
+        <p id="fileList"></p>
     </div>
 
     <!-- OTP ile Dosya İndirme Formu -->
     <div id="downloadSection" class="hidden">
         <h3>Tek Seferlik Şifre ile Dosya İndir</h3>
         <input type="text" id="otpInput" class="buttonpurple" placeholder="Tek seferlik kodu girin"><br><br>
-        <button class="buttonblue button4" onclick="downloadFile()">İndir</button>
+        <button class="buttonblue button4" onclick="fetchFiles()">Dosyaları Listele</button>
+        <div id="filesContainer"></div>
     </div>
 </div>
 
@@ -61,60 +72,60 @@
     }
 
     function uploadFile() {
-            const fileInput = document.getElementById('fileInput');
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
+        const fileInput = document.getElementById('fileInput');
+        const formData = new FormData();
+        for (const file of fileInput.files) {
+            formData.append('files', file);
+        }
+        fetch('http://localhost:9090/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.otp) {
+                document.getElementById('otpMessage').innerText = "Şifre: " + data.otp;
+                const fileList = data.fileNames.join(', ');
+                document.getElementById('fileList').innerText = "Yüklenen Dosyalar: " + fileList;
+            } else {
+                document.getElementById('otpMessage').innerText = "Hata: OTP alınamadı.";
+            }
+        })
+        .catch(error => {
+            console.error('Hata:', error);
+            document.getElementById('otpMessage').innerText = "Sunucu ile iletişimde bir sorun var.";
+        });
+    }
 
-            fetch('http://localhost:9090/upload', {
-                method: 'POST',
-                body: formData
-            })
+    function fetchFiles() {
+        const otp = document.getElementById('otpInput').value;
+        if (!otp) {
+            alert('Lütfen OTP kodunu girin.');
+            return;
+        }
+
+        fetch(`http://localhost:9090/getAllFiles/${otp}`)
             .then(response => response.json())
             .then(data => {
-                if (data.otp) {
-                    document.getElementById('otpMessage').innerText = "Şifre: " + data.otp;
+                if (data.files && data.files.length > 0) {
+                    const filesContainer = document.getElementById('filesContainer');
+                    filesContainer.innerHTML = ''; // Önceki dosyaları temizle
+                    data.files.forEach(fileName => {
+                        const link = document.createElement('a');
+                        link.href = `http://localhost:9090/download/${otp}?fileName=${fileName}`;
+                        link.className = 'file-link';
+                        link.textContent = fileName;
+                        filesContainer.appendChild(link);
+                    });
                 } else {
-                    document.getElementById('otpMessage').innerText = "Hata: OTP alınamadı.";
+                    document.getElementById('filesContainer').innerText = 'Dosya bulunamadı.';
                 }
             })
             .catch(error => {
                 console.error('Hata:', error);
-                document.getElementById('otpMessage').innerText = "Sunucu ile iletişimde bir sorun var.";
+                alert('Bir hata oluştu: ' + error.message);
             });
-        }
-
-        function downloadFile() {
-            const otp = document.getElementById('otpInput').value;
-            if (!otp) {
-                alert('Lütfen OTP kodunu girin.');
-                return;
-            }
-
-            fetch(`http://localhost:9090/download/${otp}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Dosya bulunamadı veya sunucu hatası.');
-                    }
-                    const contentDisposition = response.headers.get('Content-Disposition');
-                    const fileName = contentDisposition ? contentDisposition.split('filename=')[1] : otp;
-                    return response.blob().then(blob => ({ blob, fileName })); // Yanıtı blob olarak al
-                })
-                .then(({blob, fileName}) => {
-                    // Dosyayı indirmek için bir bağlantı oluştur
-                    const url = window.URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = fileName; // Dosyanın adı
-                    document.body.appendChild(link);
-                    link.click();
-                    link.remove();
-                    window.URL.revokeObjectURL(url);
-                })
-                .catch(error => {
-                    console.error('Hata:', error);
-                    alert('Bir hata oluştu: ' + error.message);
-                });
-        }
+    }
 </script>
 
 </body>

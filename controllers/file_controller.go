@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var files = map[string]string{}
+var files = map[string][]string{}
 
 func UploadFile(c *gin.Context) {
 
@@ -18,38 +18,68 @@ func UploadFile(c *gin.Context) {
 		os.Mkdir("uploads", os.ModePerm)
 	}
 
-	file, err := c.FormFile("file")
+	form, err := c.MultipartForm() // Çoklu dosya
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	uploadedFiles := form.File["files"] // Formdan dosyaları al
 	otp := services.GenerateOneTimePassword()
 
-	// Dosyayı kaydet
-	filePath := filepath.Join("uploads", file.Filename)
-	if err := c.SaveUploadedFile(file, filePath); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Dosya yüklenemedi"})
-		return
+	var fileNames []string
+
+	for _, file := range uploadedFiles {
+		filePath := filepath.Join("uploads", file.Filename)
+
+		if err := c.SaveUploadedFile(file, filePath); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Dosya yüklenemedi"})
+			return
+		}
+
+		fileNames = append(fileNames, file.Filename) // Dosya adını dilime ekle
 	}
 
-	// OTP ve dosya adını kaydet
-	files[otp] = filePath
+	files[otp] = fileNames // OTP'ye bağlı dosya adlarını kaydet
 
-	c.JSON(http.StatusOK, gin.H{"otp": otp, "fileName": file.Filename})
+	c.JSON(http.StatusOK, gin.H{"otp": otp, "fileNames": fileNames})
 }
 
 func DownloadFile(c *gin.Context) {
 	otp := c.Param("otp")
 
-	filePath, exists := files[otp]
+	fileNames, exists := files[otp]
 	if !exists {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Dosya bulunamadı"})
 		return
 	}
 
-	fileName := filepath.Base(filePath)
+	requestedFile := c.Query("fileName")
+	if requestedFile == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Dosya adı belirtilmedi"})
+		return
+	}
 
-	c.Header("Content-Disposition", "attachment; filename="+fileName)
+	var filePath string
+	for _, fileName := range fileNames {
+		if fileName == requestedFile {
+			filePath = filepath.Join("uploads", fileName)
+			break
+		}
+	}
+
+	c.Header("Content-Disposition", "attachment; filename="+requestedFile)
 	c.File(filePath)
+}
+
+func GetAllFiles(c *gin.Context) {
+	otp := c.Param("otp")
+
+	fileNames, exists := files[otp]
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Dosyalar bulunamadı"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"files": fileNames})
 }

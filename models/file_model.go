@@ -11,6 +11,6 @@ type FileModel struct {
 	ID               uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4()"`
 	Otp              string    `json:"otp"`
 	UserSecurityCode string    `json:"userSecurityCode"`
-	FileName         string    `json:"fileName"`
+	FileNames        []string  `json:"fileNames" gorm:"type:text[]`
 	File             string    `json:"file"`
 }
