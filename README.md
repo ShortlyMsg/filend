@@ -16,12 +16,12 @@
 
 ## Endpoints
 - ### **Ui**  
- [http://localhost:9090/ui/](http://localhost:9090/ui/) 
+- [http://localhost:9090/ui/](http://localhost:9090/ui/) 
 - ### **Api**
 - http://localhost:9090/upload
 
-- http://localhost:9090/download/:otp?fileName=name.jpeg
-    - Example: http://localhost:9090/download/123456?fileName=Bike.jpeg
+- http://localhost:9090/download/:otp?fileName=name.jpeg&userSecurityCode=${userSecurityCode}
+    - Example: http://localhost:9090/download/123456?fileName=Bike.jpeg&userSecurityCode=c0d3
 
 - http://localhost:9090/getAllFiles/:otp
     - Example: http://localhost:9090/getAllFiles/123456
