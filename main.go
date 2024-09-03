@@ -1,12 +1,15 @@
 package main
 
 import (
+	"filend/config"
 	"filend/routes"
 	"filend/services"
 	"fmt"
 )
 
 func main() {
+
+	config.ConnectDatabase()
 
 	fmt.Println(services.GenerateOneTimePassword())
 

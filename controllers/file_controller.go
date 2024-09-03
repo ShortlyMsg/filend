@@ -1,15 +1,22 @@
 package controllers
 
 import (
+	"filend/config"
+	"filend/models"
 	"filend/services"
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
-var files = map[string][]string{}
+func validateSecurityCode(code string) bool {
+	re := regexp.MustCompile(`^[A-Za-z0-9]{4}$`)
+	return re.MatchString(code)
+}
 
 func UploadFile(c *gin.Context) {
 
@@ -26,6 +33,12 @@ func UploadFile(c *gin.Context) {
 
 	uploadedFiles := form.File["files"] // Formdan dosyaları al
 	otp := services.GenerateOneTimePassword()
+	userSecurityCode := c.PostForm("userSecurityCode")
+
+	if !validateSecurityCode(userSecurityCode) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Geçersiz güvenlik kodu. Lütfen 4 haneli büyük/küçük harf ve rakam içeren bir kod girin."})
+		return
+	}
 
 	var fileNames []string
 
@@ -40,17 +53,32 @@ func UploadFile(c *gin.Context) {
 		fileNames = append(fileNames, file.Filename) // Dosya adını dilime ekle
 	}
 
-	files[otp] = fileNames // OTP'ye bağlı dosya adlarını kaydet
+	fileModel := models.FileModel{
+		ID:               uuid.New(),
+		Otp:              otp,
+		UserSecurityCode: userSecurityCode,
+		FileNames:        fileNames,
+	}
+	if err := config.DB.Create(&fileModel).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Veritabanına kaydedilemedi"})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"otp": otp, "fileNames": fileNames})
 }
 
 func DownloadFile(c *gin.Context) {
 	otp := c.Param("otp")
+	userSecurityCode := c.Query("userSecurityCode")
 
-	fileNames, exists := files[otp]
-	if !exists {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Dosya bulunamadı"})
+	if !validateSecurityCode(userSecurityCode) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Geçersiz güvenlik kodu. Lütfen 4 haneli büyük/küçük harf ve rakam içeren bir kod girin."})
+		return
+	}
+
+	var fileModel models.FileModel
+	if err := config.DB.Where("otp = ? AND user_security_code = ?", otp, userSecurityCode).First(&fileModel).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Dosya bulunamadı veya güvenlik kodu yanlış"})
 		return
 	}
 
@@ -61,7 +89,7 @@ func DownloadFile(c *gin.Context) {
 	}
 
 	var filePath string
-	for _, fileName := range fileNames {
+	for _, fileName := range fileModel.FileNames {
 		if fileName == requestedFile {
 			filePath = filepath.Join("uploads", fileName)
 			break
@@ -75,11 +103,11 @@ func DownloadFile(c *gin.Context) {
 func GetAllFiles(c *gin.Context) {
 	otp := c.Param("otp")
 
-	fileNames, exists := files[otp]
-	if !exists {
+	var fileModel models.FileModel
+	if err := config.DB.Where("otp = ?", otp).First(&fileModel).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Dosyalar bulunamadı"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"files": fileNames})
+	c.JSON(http.StatusOK, gin.H{"files": fileModel.FileNames})
 }

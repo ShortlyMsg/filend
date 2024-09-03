@@ -46,6 +46,7 @@
     <div id="uploadSection" class="hidden">
         <h3>Dosya Yükle</h3>
         <input type="file" class="buttonpurple button4" id="fileInput" multiple><br><br>
+        <input type="text" id="userSecurityCode" class="buttonpurple" placeholder="Güvenlik için Kod belirleyin!"><br><br>
         <button class="buttonblue button4" onclick="uploadFile()">Gönder</button>
         <p id="otpMessage"></p>
         <p id="fileList"></p>
@@ -55,7 +56,8 @@
     <div id="downloadSection" class="hidden">
         <h3>Tek Seferlik Şifre ile Dosya İndir</h3>
         <input type="text" id="otpInput" class="buttonpurple" placeholder="Tek seferlik kodu girin"><br><br>
-        <button class="buttonblue button4" onclick="fetchFiles()">Dosyaları Listele</button>
+        <input type="text" id="userSecurityCodeInput" class="buttonpurple" placeholder="4 Haneli Güvenlik kodu: "><br><br>
+        <button class="buttonblue button4" onclick="downloadFiles()">Dosyaları Listele</button>
         <div id="filesContainer"></div>
     </div>
 </div>
@@ -71,12 +73,26 @@
         document.getElementById('downloadSection').classList.remove('hidden');
     }
 
+    function validateSecurityCode(code) {
+    const regex = /^[A-Za-z0-9]{4}$/; // 4 harfli, büyük/küçük harf ve sayı içeren kod
+    return regex.test(code);
+}
+
     function uploadFile() {
         const fileInput = document.getElementById('fileInput');
+        const userSecurityCode = document.getElementById('userSecurityCode').value;
+
+        if (!validateSecurityCode(userSecurityCode)) {
+        alert('Güvenlik kodu geçersiz. Lütfen 4 haneli büyük/küçük harf ve rakam içeren bir kod girin.');
+        return;
+    }
+
         const formData = new FormData();
         for (const file of fileInput.files) {
             formData.append('files', file);
         }
+        formData.append('userSecurityCode', userSecurityCode);
+
         fetch('http://localhost:9090/upload', {
             method: 'POST',
             body: formData
@@ -97,14 +113,15 @@
         });
     }
 
-    function fetchFiles() {
+    function downloadFiles() {
         const otp = document.getElementById('otpInput').value;
-        if (!otp) {
-            alert('Lütfen OTP kodunu girin.');
+        const userSecurityCode = document.getElementById('userSecurityCodeInput').value;
+        if (!otp || !userSecurityCode) {
+            alert('Lütfen OTP kodunu ve Güvenlik kodunu girin.');
             return;
         }
 
-        fetch(`http://localhost:9090/getAllFiles/${otp}`)
+        fetch(`http://localhost:9090/getAllFiles/${otp}?userSecurityCode=${userSecurityCode}`)
             .then(response => response.json())
             .then(data => {
                 if (data.files && data.files.length > 0) {
@@ -112,7 +129,7 @@
                     filesContainer.innerHTML = ''; // Önceki dosyaları temizle
                     data.files.forEach(fileName => {
                         const link = document.createElement('a');
-                        link.href = `http://localhost:9090/download/${otp}?fileName=${fileName}`;
+                        link.href = `http://localhost:9090/download/${otp}?fileName=${fileName}&userSecurityCode=${userSecurityCode}`;
                         link.className = 'file-link';
                         link.textContent = fileName;
                         filesContainer.appendChild(link);
