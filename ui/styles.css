@@ -51,3 +51,21 @@
     opacity: 1; 
 }
 .button4 {border-radius: 12px;}
+
+#progressContainer {
+    width: 100%;
+    background-color: #f3f3f3;
+    border-radius: 5px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+#progressBar {
+    width: 0;
+    height: 25px;
+    background-color: #4caf50;
+    text-align: center;
+    line-height: 25px;
+    color: white;
+    border-radius: 5px;
+}

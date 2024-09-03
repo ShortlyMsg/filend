@@ -32,11 +32,11 @@
         }
     </style>
 </head>
-<body>
+<body style="background-color:rgb(1, 24, 27);">
 
 <div class="container">
-    <h2>Tek tıkla gönder, tek kodla al!</h2>
-    <h1>Dosya Gönder / Al</h1>
+    <h2 style="color:white">Tek tıkla gönder, tek kodla al!</h2>
+    <h1 style="color:white">Dosya Gönder / Al</h1>
 
     <button class="buttontur button4" onclick="showUpload()">Gönder</button>
     
@@ -44,17 +44,21 @@
 
     <!-- Dosya Yükleme Formu -->
     <div id="uploadSection" class="hidden">
-        <h3>Dosya Yükle</h3>
+        <h3 style="color:white">Dosya Yükle</h3>
         <input type="file" class="buttonpurple button4" id="fileInput" multiple><br><br>
         <input type="text" id="userSecurityCode" class="buttonpurple" placeholder="Güvenlik için Kod belirleyin!"><br><br>
         <button class="buttonblue button4" onclick="uploadFile()">Gönder</button>
         <p id="otpMessage"></p>
         <p id="fileList"></p>
+
+        <div id="progressContainer">
+            <div id="progressBar">0%</div>
+        </div>
     </div>
 
     <!-- OTP ile Dosya İndirme Formu -->
     <div id="downloadSection" class="hidden">
-        <h3>Tek Seferlik Şifre ile Dosya İndir</h3>
+        <h3 style="color:white">Tek Seferlik Şifre ile Dosya İndir</h3>
         <input type="text" id="otpInput" class="buttonpurple" placeholder="Tek seferlik kodu girin"><br><br>
         <input type="text" id="userSecurityCodeInput" class="buttonpurple" placeholder="4 Haneli Güvenlik kodu: "><br><br>
         <button class="buttonblue button4" onclick="downloadFiles()">Dosyaları Listele</button>
@@ -81,11 +85,14 @@
     function uploadFile() {
         const fileInput = document.getElementById('fileInput');
         const userSecurityCode = document.getElementById('userSecurityCode').value;
+        const progressBar = document.getElementById('progressBar');
 
         if (!validateSecurityCode(userSecurityCode)) {
         alert('Güvenlik kodu geçersiz. Lütfen 4 haneli büyük/küçük harf ve rakam içeren bir kod girin.');
         return;
     }
+
+        const xhr = new XMLHttpRequest(); // progressbar
 
         const formData = new FormData();
         for (const file of fileInput.files) {
