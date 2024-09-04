@@ -2,12 +2,17 @@ package services
 
 import (
 	"crypto/rand"
-	"fmt"
 	"math/big"
 )
 
+const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+
 func GenerateOneTimePassword() string {
-	num, _ := rand.Int(rand.Reader, big.NewInt(900000))
-	otp := 100000 + num.Int64()
-	return fmt.Sprintf("%d", otp)
+	length := 6
+	otp := make([]byte, length)
+	for i := range otp {
+		randomIndex, _ := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		otp[i] = charset[randomIndex.Int64()]
+	}
+	return string(otp)
 }
