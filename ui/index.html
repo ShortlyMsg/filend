@@ -100,7 +100,7 @@
         }
         formData.append('userSecurityCode', userSecurityCode);
 
-        fetch('http://localhost:9090/upload', {
+        fetch('http://localhost:9091/upload', {
             method: 'POST',
             body: formData
         })
@@ -128,7 +128,7 @@
             return;
         }
 
-        fetch(`http://localhost:9090/getAllFiles/${otp}?userSecurityCode=${userSecurityCode}`)
+        fetch(`http://localhost:9091/getAllFiles/${otp}?userSecurityCode=${userSecurityCode}`)
             .then(response => response.json())
             .then(data => {
                 if (data.files && data.files.length > 0) {
@@ -136,7 +136,7 @@
                     filesContainer.innerHTML = ''; // Önceki dosyaları temizle
                     data.files.forEach(fileName => {
                         const link = document.createElement('a');
-                        link.href = `http://localhost:9090/download/${otp}?fileName=${fileName}&userSecurityCode=${userSecurityCode}`;
+                        link.href = `http://localhost:9091/download/${otp}?fileName=${fileName}&userSecurityCode=${userSecurityCode}`;
                         link.className = 'file-link';
                         link.textContent = fileName;
                         filesContainer.appendChild(link);
