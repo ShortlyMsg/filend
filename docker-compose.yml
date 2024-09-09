@@ -1,0 +1,33 @@
+services:
+  minio:
+    image: minio/minio
+    container_name: minio_server
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: root
+      MINIO_ROOT_PASSWORD: 11223300
+    command: server /data
+    volumes:
+      - "C:/filend/minio:/data"
+
+  postgres:
+    image: postgres:latest
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: filend
+    ports:
+      - "5432:5432"
+    volumes:
+      - "C:/filend/pg:/data"
+
+  app:
+    build: .
+    ports:
+      - "9091:8080"
+    depends_on:
+      - minio
+      - postgres

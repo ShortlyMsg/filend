@@ -11,8 +11,8 @@ var MinioClient *minio.Client
 
 func ConnectMinio() {
 	endpoint := "localhost:9000"
-	accessKeyID := "Zjr7F3ddORJnFMq3avF5"
-	secretAccessKey := "X1uEr7avB00CoaiQ8sF6iTpCTEQeXtADJNrFPInn"
+	accessKeyID := "ZHGxFxL8SyD36S9aeWwR"                         //"Zjr7F3ddORJnFMq3avF5"
+	secretAccessKey := "k0Ovirw27pVLWE20V9ESxiffmo6tv7MJIgiaGJHu" //"X1uEr7avB00CoaiQ8sF6iTpCTEQeXtADJNrFPInn"
 	useSSL := false
 
 	client, err := minio.New(endpoint, &minio.Options{

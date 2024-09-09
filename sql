@@ -1,9 +1,10 @@
 CREATE TABLE file_models (
-    id TEXT PRIMARY KEY,
-    otp TEXT NOT NULL,
-    user_security_code TEXT NOT NULL,
+    id VARCHAR(36) PRIMARY KEY,
+    otp VARCHAR(6),
+    user_security_code VARCHAR(4),
     file_names TEXT[],
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    file_hashes TEXT[],
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     deleted_at TIMESTAMPTZ
 );
