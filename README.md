@@ -20,8 +20,8 @@
 - ### **Api**
 - http://localhost:9091/upload
 
-- http://localhost:9091/download/:otp?fileName=name.jpeg&userSecurityCode=${userSecurityCode}
-    - Example: http://localhost:9091/download/123456?fileName=Bike.jpeg&userSecurityCode=c0d3
+- http://localhost:9091/download/:{otp}?fileHash=${fileHash}
+    - Example: http://localhost:9091/download/abc123?fileHash=hashcode
 
 - http://localhost:9091/getAllFiles/:otp
     - Example: http://localhost:9091/getAllFiles/123456
