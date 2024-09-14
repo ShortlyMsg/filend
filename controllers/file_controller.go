@@ -10,8 +10,6 @@ import (
 
 	"io"
 	"net/http"
-	"os"
-	"path/filepath"
 	"regexp"
 
 	"github.com/gin-gonic/gin"
@@ -24,13 +22,7 @@ func validateSecurityCode(code string) bool {
 	return re.MatchString(code)
 }
 
-func GenerateFileHash(filePath string) (string, error) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
-
+func GenerateFileHash(file io.Reader) (string, error) {
 	hash := sha256.New()
 	if _, err := io.Copy(hash, file); err != nil {
 		return "", err
@@ -58,32 +50,25 @@ func UploadFile(c *gin.Context) {
 	var fileNames []string
 	var fileHashes []string
 
-	tmpDir := "./tmp"
-	os.Mkdir(tmpDir, os.ModePerm)
-
 	for _, file := range uploadedFiles {
-		// Dosyayı geçici klasöre kaydet
-		tempFilePath := filepath.Join(tmpDir, file.Filename)
-		if err := c.SaveUploadedFile(file, tempFilePath); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Dosya geçici klasöre kaydedilemedi: " + err.Error()})
+		// İstemciden gelecek şekilde
+		uploadedFile, err := file.Open()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Dosya açılamadı: " + err.Error()})
 			return
 		}
+		defer uploadedFile.Close()
+
 		// Hashi oluştur
-		fileHash, err := GenerateFileHash(tempFilePath)
+		fileHash, err := GenerateFileHash(uploadedFile)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Dosya Hashi oluşturulamadı"})
 			return
 		}
 
 		// MinIO'ya hash ismiyle yükle
-		tempFile, err := os.Open(tempFilePath)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Geçici dosya açılamadı: " + err.Error()})
-			return
-		}
-		defer tempFile.Close()
-
-		_, err = config.MinioClient.PutObject(c, "filend", fileHash, tempFile, file.Size, minio.PutObjectOptions{
+		uploadedFile.Seek(0, io.SeekStart)
+		_, err = config.MinioClient.PutObject(c, "filend", fileHash, uploadedFile, file.Size, minio.PutObjectOptions{
 			ContentType: file.Header.Get("Content-Type"),
 		})
 		if err != nil {
