@@ -32,7 +32,7 @@
         }
     </style>
 </head>
-<body style="background-color:rgb(1, 24, 27);">
+<body style="background-color:#01181b;">
 
 <div class="container">
     <h2 style="color:white">Tek tıkla gönder, tek kodla al!</h2>
@@ -96,8 +96,21 @@
 
         const formData = new FormData();
         for (const file of fileInput.files) {
+
+            const fileIdentifier = `${file.name}-${file.size}`;
+
+            if (uploadedFilesSet.has(fileIdentifier)) {
+            continue; 
+            }
+
+            uploadedFilesSet.add(fileIdentifier)
             formData.append('files', file);
         }
+
+        if (!formData.has('files')) {
+        return;
+        }
+
         formData.append('userSecurityCode', userSecurityCode);
 
         fetch('http://localhost:9091/upload', {
