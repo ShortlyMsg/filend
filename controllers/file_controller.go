@@ -102,8 +102,6 @@ func UploadFile(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Veritabanına kaydedilemedi"})
 			return
 		}
-		fileNames = []string{}
-		fileHashes = []string{}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"otp": otp, "fileNames": fileNames})
