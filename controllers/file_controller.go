@@ -123,7 +123,7 @@ func DownloadFile(c *gin.Context) {
 	}
 
 	var fileDetails []models.FileDetails
-	if err := config.DB.Where("file_model_id ?", fileModel.FileModelID).Find(&fileDetails).Error; err != nil {
+	if err := config.DB.Where("file_model_id = ?", fileModel.FileModelID).Find(&fileDetails).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "FileDetails Getirilemedi"})
 		return
 	}

@@ -11,5 +11,5 @@ CREATE TABLE file_details (
     file_details_id VARCHAR(36) PRIMARY KEY,
     file_names TEXT[],
     file_hashes TEXT[],
-    file_model_id NOT NULL REFERENCES file_models(file_model_id) ON DELETE CASCADE
+    file_model_id VARCHAR(36) NOT NULL REFERENCES file_models(file_model_id) ON DELETE CASCADE
 );
