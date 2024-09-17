@@ -8,6 +8,8 @@ import (
 	"filend/models"
 	"filend/services"
 
+	"github.com/lib/pq"
+
 	"io"
 	"net/http"
 	"regexp"
@@ -50,6 +52,17 @@ func UploadFile(c *gin.Context) {
 	var fileNames []string
 	var fileHashes []string
 
+	fileModel := models.FileModel{
+		FileModelID:      uuid.New(),
+		Otp:              otp,
+		UserSecurityCode: "usc0",
+	}
+
+	if err := config.DB.Create(&fileModel).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Veritabanına kaydedilemedi"})
+		return
+	}
+
 	for _, file := range uploadedFiles {
 		// İstemciden gelecek şekilde
 		uploadedFile, err := file.Open()
@@ -78,18 +91,19 @@ func UploadFile(c *gin.Context) {
 
 		fileNames = append(fileNames, file.Filename)
 		fileHashes = append(fileHashes, fileHash)
-	}
 
-	fileModel := models.FileModel{
-		ID:               uuid.New(),
-		Otp:              otp,
-		UserSecurityCode: "usc0",
-		FileNames:        fileNames,
-		FileHashes:       fileHashes,
-	}
-	if err := config.DB.Create(&fileModel).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Veritabanına kaydedilemedi"})
-		return
+		fileDetail := models.FileDetails{
+			FileDetailsID: uuid.New(),
+			FileNames:     pq.StringArray{file.Filename},
+			FileHashes:    pq.StringArray{fileHash},
+			FileModelID:   fileModel.FileModelID,
+		}
+		if err := config.DB.Create(&fileDetail).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Veritabanına kaydedilemedi"})
+			return
+		}
+		fileNames = []string{}
+		fileHashes = []string{}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"otp": otp, "fileNames": fileNames})
@@ -110,6 +124,12 @@ func DownloadFile(c *gin.Context) {
 		return
 	}
 
+	var fileDetails []models.FileDetails
+	if err := config.DB.Where("file_model_id ?", fileModel.FileModelID).Find(&fileDetails).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "FileDetails Getirilemedi"})
+		return
+	}
+
 	requestedHash := c.Query("fileHash")
 	if requestedHash == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Dosya hashi belirtilmedi"})
@@ -117,12 +137,15 @@ func DownloadFile(c *gin.Context) {
 	}
 
 	var fileName string
-	for i, fileHash := range fileModel.FileHashes {
-		if fileHash == requestedHash {
-			fileName = fileModel.FileNames[i]
-			break
+	for _, detail := range fileDetails {
+		for i, fileHash := range detail.FileHashes {
+			if fileHash == requestedHash {
+				fileName = detail.FileNames[i]
+				break
+			}
 		}
 	}
+
 	// MinIO'dan dosyayı getir ve indir
 	fileObject, err := config.MinioClient.GetObject(c, "filend", requestedHash, minio.GetObjectOptions{})
 	if err != nil {
@@ -144,5 +167,18 @@ func GetAllFiles(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"files": fileModel.FileNames, "hashes": fileModel.FileHashes})
+	var fileDetails []models.FileDetails
+	if err := config.DB.Where("file_model_id = ?", fileModel.FileModelID).Find(&fileDetails).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "FileDetails getirilemedi"})
+		return
+	}
+
+	var fileNames []string
+	var fileHashes []string
+	for _, detail := range fileDetails {
+		fileNames = append(fileNames, detail.FileNames...)
+		fileHashes = append(fileHashes, detail.FileHashes...)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"files": fileNames, "hashes": fileHashes})
 }
