@@ -6,33 +6,10 @@
     <title>Filend - File Send</title>
     <link rel="stylesheet" href="styles.css">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin-top: 50px;
-        }
-        .container {
-            max-width: 700px;
-            margin: auto;
-            padding: 70px;
-            border: 5px solid #008d86;
-            border-radius: 20px;
-        }
-        .hidden {
-            display: none;
-        }
-        .file-link {
-            display: block;
-            margin: 5px 0;
-            color: #007bff;
-            text-decoration: none;
-        }
-        .file-link:hover {
-            text-decoration: underline;
-        }
+
     </style>
 </head>
-<body style="background-color:#01181b;">
+<body>
 
 <div class="container">
     <h2 style="color:white">Tek tıkla gönder, tek kodla al!</h2>
@@ -46,7 +23,6 @@
     <div id="uploadSection" class="hidden">
         <h3 style="color:white">Dosya Yükle</h3>
         <input type="file" class="buttonpurple button4" id="fileInput" multiple><br><br>
-        <input type="text" id="userSecurityCode" class="buttonpurple" placeholder="Güvenlik için Kod belirleyin!"><br><br>
         <button class="buttonblue button4" onclick="uploadFile()">Gönder</button>
         <p style="color:rgb(0, 255, 234)" id="otpMessage"></p>
         <p style="color:gray" id="fileList"></p>
@@ -60,7 +36,6 @@
     <div id="downloadSection" class="hidden">
         <h3 style="color:white">Tek Seferlik Şifre ile Dosya İndir</h3>
         <input type="text" id="otpInput" class="buttonpurple" placeholder="Tek seferlik kodu girin"><br><br>
-        <input type="text" id="userSecurityCodeInput" class="buttonpurple" placeholder="4 Haneli Güvenlik kodu: "><br><br>
         <button class="buttonblue button4" onclick="downloadFiles()">Dosyaları Listele</button>
         <div id="filesContainer"></div>
     </div>
@@ -114,7 +89,7 @@ const uploadedFilesSet = new Set();
         return;
         }
 
-        formData.append('userSecurityCode', userSecurityCode);
+        //formData.append('userSecurityCode', userSecurityCode);
 
         fetch('http://localhost:9091/upload', {
             method: 'POST',
@@ -144,7 +119,13 @@ const uploadedFilesSet = new Set();
         //     return;
         // }
 
-        fetch(`http://localhost:9091/getAllFiles/${otp}`) //&userSecurityCode=${userSecurityCode}
+        fetch(`http://localhost:9091/getAllFiles/${otp}`, {
+            method : 'POST',
+            headers:{
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ otp }) //&userSecurityCode=${userSecurityCode}
+        })
             .then(response => response.json())
             .then(data => {
                 if (data.files && data.files.length > 0 && data.hashes && data.hashes.length) {

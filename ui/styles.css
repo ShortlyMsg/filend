@@ -1,3 +1,29 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin-top: 50px;
+    background-color:#01181b
+}
+.container {
+    max-width: 700px;
+    margin: auto;
+    padding: 70px;
+    border: 5px solid #008d86;
+    border-radius: 20px;
+}
+.hidden {
+    display: none;
+}
+.file-link {
+    display: block;
+    margin: 5px 0;
+    color: #007bff;
+    text-decoration: none;
+}
+.file-link:hover {
+    text-decoration: underline;
+}
+
 .buttontur {
     background-color: #008d86;
     border: 1px;
