@@ -108,7 +108,16 @@ func UploadFile(c *gin.Context) {
 }
 
 func DownloadFile(c *gin.Context) {
-	otp := c.Param("otp")
+
+	var request struct {
+		Otp      string `json:"otp"`
+		FileHash string `json:"fileHash"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Geçersiz istek"})
+		return
+	}
 	// userSecurityCode := c.Query("userSecurityCode")
 
 	// if !validateSecurityCode(userSecurityCode) {
@@ -117,7 +126,7 @@ func DownloadFile(c *gin.Context) {
 	// }
 
 	var fileModel models.FileModel
-	if err := config.DB.Where("otp = ?", otp).First(&fileModel).Error; err != nil {
+	if err := config.DB.Where("otp = ?", request.Otp).First(&fileModel).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Dosya bulunamadı"})
 		return
 	}
@@ -128,8 +137,7 @@ func DownloadFile(c *gin.Context) {
 		return
 	}
 
-	requestedHash := c.Query("fileHash")
-	if requestedHash == "" {
+	if request.FileHash == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Dosya hashi belirtilmedi"})
 		return
 	}
@@ -137,7 +145,7 @@ func DownloadFile(c *gin.Context) {
 	var fileName string
 	for _, detail := range fileDetails {
 		for i, fileHash := range detail.FileHashes {
-			if fileHash == requestedHash {
+			if fileHash == request.FileHash {
 				fileName = detail.FileNames[i]
 				break
 			}
@@ -145,7 +153,7 @@ func DownloadFile(c *gin.Context) {
 	}
 
 	// MinIO'dan dosyayı getir ve indir
-	fileObject, err := config.MinioClient.GetObject(c, "filend", requestedHash, minio.GetObjectOptions{})
+	fileObject, err := config.MinioClient.GetObject(c, "filend", request.FileHash, minio.GetObjectOptions{})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Dosya getirilemedi: " + err.Error()})
 		return
@@ -157,7 +165,16 @@ func DownloadFile(c *gin.Context) {
 }
 
 func GetAllFiles(c *gin.Context) {
-	otp := c.Param("otp")
+	var request struct {
+		Otp string `json:"otp"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Geçersiz istek"})
+		return
+	}
+
+	otp := request.Otp
 
 	var fileModel models.FileModel
 	if err := config.DB.Where("otp = ?", otp).First(&fileModel).Error; err != nil {

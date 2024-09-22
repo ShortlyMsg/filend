@@ -44,6 +44,15 @@
 
 const uploadedFilesSet = new Set();
 
+    async function calculateSHA256(file) {
+        const arrayBuffer = await file.arrayBuffer();
+        const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        return hashHex;
+    }
+
+
     function showUpload() {
         document.getElementById('uploadSection').classList.remove('hidden');
         document.getElementById('downloadSection').classList.add('hidden');
@@ -59,7 +68,7 @@ const uploadedFilesSet = new Set();
     return regex.test(code);
 }
 
-    function uploadFile() {
+    async function uploadFile() {
         const fileInput = document.getElementById('fileInput');
     //    const userSecurityCode = document.getElementById('userSecurityCode').value;
         const progressBar = document.getElementById('progressBar');
@@ -74,14 +83,15 @@ const uploadedFilesSet = new Set();
         const formData = new FormData();
         for (const file of fileInput.files) {
 
-            const fileIdentifier = `${file.name}-${file.size}`;
+            const fileHash = await calculateSHA256(file);
 
-            if (uploadedFilesSet.has(fileIdentifier)) {
+            if (uploadedFilesSet.has(fileHash)) {
             continue; 
             }
 
-            uploadedFilesSet.add(fileIdentifier)
+            uploadedFilesSet.add(fileHash);
             formData.append('files', file);
+            formData.append('fileHashes', fileHash);
         }
 
         if (!formData.has('files')) {
@@ -117,8 +127,12 @@ const uploadedFilesSet = new Set();
         //     alert('Lütfen OTP kodunu ve Güvenlik kodunu girin.');
         //     return;
         // }
+        if (!otp) {
+        alert('Lütfen OTP kodunu girin.');
+        return;
+    }
 
-        fetch(`http://localhost:9091/getAllFiles/${otp}`, {
+        fetch(`http://localhost:9091/getAllFiles`, {
             method : 'POST',
             headers:{
                 'Content-Type': 'application/json'
@@ -133,7 +147,7 @@ const uploadedFilesSet = new Set();
                     data.files.forEach((fileName, index) => {
                         const fileHash = data.hashes[index];
                         const link = document.createElement('a');
-                        link.href = `http://localhost:9091/download/${otp}?fileHash=${fileHash}`; //&userSecurityCode=${userSecurityCode}
+                        link.href = `http://localhost:9091/download?fileHash=${fileHash}`; //&userSecurityCode=${userSecurityCode}
                         link.className = 'file-link';
                         link.textContent = fileName;
                         filesContainer.appendChild(link);

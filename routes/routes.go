@@ -13,7 +13,7 @@ func SetupRouter() *gin.Engine {
 
 	router.POST("/upload", controllers.UploadFile)
 	router.GET("/download/:otp", controllers.DownloadFile)
-	router.POST("/getAllFiles/:otp", controllers.GetAllFiles)
+	router.POST("/getAllFiles", controllers.GetAllFiles)
 
 	return router
 }
