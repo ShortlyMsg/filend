@@ -27,7 +27,9 @@ services:
   app:
     build: .
     ports:
-      - "9091:8080"
+      - "9091:9091"
     depends_on:
       - minio
       - postgres
+    env_file:
+      - .env
