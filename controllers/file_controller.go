@@ -197,3 +197,21 @@ func GetAllFiles(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"files": fileNames, "hashes": fileHashes})
 }
+
+func CheckFileHash(c *gin.Context) {
+	var requestHash struct {
+		FileHash string `json:"fileHash"`
+	}
+
+	if err := c.ShouldBindJSON(&requestHash); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Geçersiz istek"})
+		return
+	}
+
+	var file models.FileModel
+	if err := config.DB.Where("hash = ?", requestHash.FileHash).First(&file).Error; err == nil {
+		c.JSON(http.StatusOK, gin.H{"exist": true})
+	} else {
+		c.JSON(http.StatusOK, gin.H{"exists": false})
+	}
+}

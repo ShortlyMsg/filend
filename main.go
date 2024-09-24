@@ -20,7 +20,6 @@ func main() {
 	config.ConnectMinio()
 
 	go services.StartScheduler(config.DB)
-	services.DeleteOldFiles(config.DB)
 
 	fmt.Println(services.GenerateOneTimePassword())
 
