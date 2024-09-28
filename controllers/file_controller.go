@@ -79,6 +79,21 @@ func UploadFile(c *gin.Context) {
 			return
 		}
 
+		var existingFile models.FileDetails
+		if err := config.DB.Where("file_hashes @> ?", pq.StringArray{fileHash}).First(&existingFile).Error; err == nil {
+			// Dosya zaten mevcut, atla
+			if err := config.DB.Where("file_model_id = ?", existingFile.FileModelID).First(&fileModel).Error; err == nil {
+				if fileModel.DeletedAt.Valid {
+					// Dosya silinmiş, tekrar yükle
+					continue
+				} else {
+					// Dosya silinmemiş, zaten yüklendi
+					fileNames = append(fileNames, file.Filename+" (zaten yüklendi)")
+					continue
+				}
+			}
+		}
+
 		// MinIO'ya hash ismiyle yükle
 		uploadedFile.Seek(0, io.SeekStart)
 		_, err = config.MinioClient.PutObject(c, "filend", fileHash, uploadedFile, file.Size, minio.PutObjectOptions{
@@ -198,20 +213,20 @@ func GetAllFiles(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"files": fileNames, "hashes": fileHashes})
 }
 
-func CheckFileHash(c *gin.Context) {
-	var requestHash struct {
-		FileHash string `json:"fileHash"`
-	}
+// func CheckFileHash(c *gin.Context) {
+// 	var requestHash struct {
+// 		FileHash string `json:"fileHash"`
+// 	}
 
-	if err := c.ShouldBindJSON(&requestHash); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Geçersiz istek"})
-		return
-	}
+// 	if err := c.ShouldBindJSON(&requestHash); err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Geçersiz istek"})
+// 		return
+// 	}
 
-	var file models.FileModel
-	if err := config.DB.Where("hash = ?", requestHash.FileHash).First(&file).Error; err == nil {
-		c.JSON(http.StatusOK, gin.H{"exist": true})
-	} else {
-		c.JSON(http.StatusOK, gin.H{"exists": false})
-	}
-}
+// 	var fileDetails models.FileDetails
+// 	if err := config.DB.Where("file_hashes @> ?", pq.StringArray{requestHash.FileHash}).First(&fileDetails).Error; err == nil {
+// 		c.JSON(http.StatusOK, gin.H{"exists": false})
+// 		return
+// 	}
+// 	c.JSON(http.StatusOK, gin.H{"exists": true})
+// }

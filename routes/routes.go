@@ -12,9 +12,8 @@ func SetupRouter() *gin.Engine {
 	router.Use(cors.Default())
 
 	router.POST("/upload", controllers.UploadFile)
-	router.GET("/download/:otp", controllers.DownloadFile)
+	router.POST("/download", controllers.DownloadFile)
 	router.POST("/getAllFiles", controllers.GetAllFiles)
-	router.POST("/checkFileHash", controllers.CheckFileHash)
 
 	return router
 }

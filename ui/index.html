@@ -94,15 +94,12 @@ const uploadedFilesSet = new Set();
             formData.append('fileHashes', fileHash);
         }
 
-        if (!formData.has('files')) {
-        return;
-        }
-
         //formData.append('userSecurityCode', userSecurityCode);
 
+        if (formData.has('files')) {
         fetch('http://localhost:9091/upload', {
             method: 'POST',
-            body: formData
+            body: formData,
         })
         .then(response => response.json())
         .then(data => {
@@ -119,6 +116,7 @@ const uploadedFilesSet = new Set();
             document.getElementById('otpMessage').innerText = "Sunucu ile iletişimde bir sorun var.";
         });
     }
+}
 
     function downloadFiles() {
         const otp = document.getElementById('otpInput').value;
@@ -147,11 +145,32 @@ const uploadedFilesSet = new Set();
                     data.files.forEach((fileName, index) => {
                         const fileHash = data.hashes[index];
                         const link = document.createElement('a');
-                        link.href = `http://localhost:9091/download?fileHash=${fileHash}`; //&userSecurityCode=${userSecurityCode}
+                        link.href = `#`;
                         link.className = 'file-link';
                         link.textContent = fileName;
-                        filesContainer.appendChild(link);
-                    });
+                        link.onclick = function() {
+                        fetch(`http://localhost:9091/download`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ otp, fileHash }) // Pass otp and fileHash as JSON payload
+                        })
+                            .then(response => response.blob())
+                            .then(blob => {
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = fileName;
+                                a.click();
+                            })
+                            .catch(error => {
+                                console.error('Hata:', error);
+                                alert('Bir hata oluştu: ' + error.message);
+                            });
+                    };
+                    filesContainer.appendChild(link);
+                });
                 } else {
                     document.getElementById('filesContainer').innerText = 'Dosya bulunamadı.';
                 }
