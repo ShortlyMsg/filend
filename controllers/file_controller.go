@@ -215,6 +215,7 @@ func CheckFileHash(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Veritabanı hatası"})
 		return
 	}
+	//log.Printf("Existing Files: %+v", existingFiles)
 
 	if len(existingFiles) == 0 {
 		// Eğer dosya bulunamazsa, yüklemeye izin ver
@@ -231,7 +232,7 @@ func CheckFileHash(c *gin.Context) {
 			return
 		}
 
-		if fileModel.DeletedAt.Valid == false {
+		if fileModel.DeletedAt != nil {
 			// Eğer DeletedAt boş ise, bu dosya hala aktif, yüklemeyi engelle
 			allDeleted = false
 			break

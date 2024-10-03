@@ -12,7 +12,7 @@ import (
 )
 
 func DeleteOldFiles(db *gorm.DB) {
-	thresholdTime := time.Now().Add(-12 * time.Hour)
+	thresholdTime := time.Now().Add(-1 * time.Minute)
 
 	var fileModels []models.FileModel
 	if err := db.Where("created_at < ?", thresholdTime).Find(&fileModels).Error; err != nil {
@@ -25,7 +25,7 @@ func DeleteOldFiles(db *gorm.DB) {
 	for _, fileModel := range fileModels {
 		// Silinme tarihini güncelle
 		now := time.Now()
-		fileModel.DeletedAt = gorm.DeletedAt{Time: now, Valid: true}
+		fileModel.DeletedAt = &now
 		if err := db.Save(&fileModel).Error; err != nil {
 			log.Println("Veritabanında silinme tarihi güncellenemedi:", err)
 		}
