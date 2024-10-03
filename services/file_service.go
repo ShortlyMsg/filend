@@ -12,7 +12,7 @@ import (
 )
 
 func DeleteOldFiles(db *gorm.DB) {
-	thresholdTime := time.Now().Add(-1 * time.Minute)
+	thresholdTime := time.Now().Add(-12 * time.Hour)
 
 	var fileModels []models.FileModel
 	if err := db.Where("created_at < ?", thresholdTime).Find(&fileModels).Error; err != nil {
