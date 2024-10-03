@@ -79,21 +79,6 @@ func UploadFile(c *gin.Context) {
 			return
 		}
 
-		var existingFile models.FileDetails
-		if err := config.DB.Where("file_hashes @> ?", pq.StringArray{fileHash}).First(&existingFile).Error; err == nil {
-			// Dosya zaten mevcut, atla
-			if err := config.DB.Where("file_model_id = ?", existingFile.FileModelID).First(&fileModel).Error; err == nil {
-				if fileModel.DeletedAt.Valid {
-					// Dosya silinmiş, tekrar yükle
-					continue
-				} else {
-					// Dosya silinmemiş, zaten yüklendi
-					fileNames = append(fileNames, file.Filename+" (zaten yüklendi)")
-					continue
-				}
-			}
-		}
-
 		// MinIO'ya hash ismiyle yükle
 		uploadedFile.Seek(0, io.SeekStart)
 		_, err = config.MinioClient.PutObject(c, "filend", fileHash, uploadedFile, file.Size, minio.PutObjectOptions{
@@ -213,20 +198,51 @@ func GetAllFiles(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"files": fileNames, "hashes": fileHashes})
 }
 
-// func CheckFileHash(c *gin.Context) {
-// 	var requestHash struct {
-// 		FileHash string `json:"fileHash"`
-// 	}
+func CheckFileHash(c *gin.Context) {
+	var requestHash struct {
+		FileHash string `json:"fileHash"`
+	}
 
-// 	if err := c.ShouldBindJSON(&requestHash); err != nil {
-// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Geçersiz istek"})
-// 		return
-// 	}
+	if err := c.ShouldBindJSON(&requestHash); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Geçersiz istek"})
+		return
+	}
 
-// 	var fileDetails models.FileDetails
-// 	if err := config.DB.Where("file_hashes @> ?", pq.StringArray{requestHash.FileHash}).First(&fileDetails).Error; err == nil {
-// 		c.JSON(http.StatusOK, gin.H{"exists": false})
-// 		return
-// 	}
-// 	c.JSON(http.StatusOK, gin.H{"exists": true})
-// }
+	var existingFiles []models.FileDetails
+
+	// Aynı hash ile dosyaları kontrol et
+	if err := config.DB.Where("file_hashes @> ?", pq.StringArray{requestHash.FileHash}).Find(&existingFiles).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Veritabanı hatası"})
+		return
+	}
+
+	if len(existingFiles) == 0 {
+		// Eğer dosya bulunamazsa, yüklemeye izin ver
+		c.JSON(http.StatusOK, gin.H{"message": "Dosya yüklenebilir"})
+		return
+	}
+
+	allDeleted := true
+	for _, file := range existingFiles {
+		var fileModel models.FileModel
+		// FileModel'deki DeletedAt değerini kontrol et
+		if err := config.DB.Where("file_model_id = ?", file.FileModelID).First(&fileModel).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Veritabanı hatası"})
+			return
+		}
+
+		if fileModel.DeletedAt.Valid == false {
+			// Eğer DeletedAt boş ise, bu dosya hala aktif, yüklemeyi engelle
+			allDeleted = false
+			break
+		}
+	}
+
+	if !allDeleted {
+		// Eğer herhangi bir dosya aktifse, yüklemeye izin verme
+		c.JSON(http.StatusConflict, gin.H{"error": "Dosya zaten mevcut, yükleme yapılamaz"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Dosya yüklenebilir"})
+}

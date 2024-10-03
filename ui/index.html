@@ -85,14 +85,24 @@ const uploadedFilesSet = new Set();
 
             const fileHash = await calculateSHA256(file);
 
-            if (uploadedFilesSet.has(fileHash)) {
-            continue; 
-            }
+            const hashCheckResponse = await fetch('http://localhost:9091/checkFileHash', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ fileHash: fileHash }),
+        });
 
+        const hashCheckData = await hashCheckResponse.json();
+
+        
+        if (!hashCheckData.exists) {
+            
             uploadedFilesSet.add(fileHash);
             formData.append('files', file);
             formData.append('fileHashes', fileHash);
         }
+    }
 
         //formData.append('userSecurityCode', userSecurityCode);
 
