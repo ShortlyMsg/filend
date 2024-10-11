@@ -44,48 +44,48 @@
 
 const uploadedFilesSet = new Set();
 
-    async function calculateSHA256(file) {
-        const arrayBuffer = await file.arrayBuffer();
-        const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        return hashHex;
-    }
+async function calculateSHA256(file) {
+    const arrayBuffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    console.log("JavaScript SHA-256 Hash:", hashHex); // hashler aynı 
+    return hashHex;
+}
 
 
-    function showUpload() {
+function showUpload() {
         document.getElementById('uploadSection').classList.remove('hidden');
         document.getElementById('downloadSection').classList.add('hidden');
     }
 
-    function showDownload() {
+function showDownload() {
         document.getElementById('uploadSection').classList.add('hidden');
         document.getElementById('downloadSection').classList.remove('hidden');
     }
 
-    function validateSecurityCode(code) {
+function validateSecurityCode(code) {
     const regex = /^[A-Za-z0-9]{4}$/; // 4 harfli, büyük/küçük harf ve sayı içeren kod
     return regex.test(code);
 }
 
-    async function uploadFile() {
-        const fileInput = document.getElementById('fileInput');
-    //    const userSecurityCode = document.getElementById('userSecurityCode').value;
-        const progressBar = document.getElementById('progressBar');
+async function uploadFile() {
+    const fileInput = document.getElementById('fileInput');
+//    const userSecurityCode = document.getElementById('userSecurityCode').value;
+    const progressBar = document.getElementById('progressBar');
 
-    //     if (!validateSecurityCode(userSecurityCode)) {
-    //     alert('Güvenlik kodu geçersiz. Lütfen 4 haneli büyük/küçük harf ve rakam içeren bir kod girin.');
-    //     return;
-    // }
+//     if (!validateSecurityCode(userSecurityCode)) {
+//     alert('Güvenlik kodu geçersiz. Lütfen 4 haneli büyük/küçük harf ve rakam içeren bir kod girin.');
+//     return;
+// }-
 
-        const xhr = new XMLHttpRequest(); // progressbar
+    const xhr = new XMLHttpRequest(); // progressbar
 
-        const formData = new FormData();
-        for (const file of fileInput.files) {
+    const formData = new FormData();
+    const filePromises = Array.from(fileInput.files).map(async (file) => {
+        const fileHash = await calculateSHA256(file);
 
-            const fileHash = await calculateSHA256(file);
-
-            const hashCheckResponse = await fetch('http://localhost:9091/checkFileHash', {
+        const hashCheckResponse = await fetch('http://localhost:9091/checkFileHash', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -95,101 +95,101 @@ const uploadedFilesSet = new Set();
 
         const hashCheckData = await hashCheckResponse.json();
 
-        
+        // Eğer dosya hash'i zaten yüklenmemişse, formData'ya ekliyoruz
         if (!hashCheckData.exists) {
-            
             uploadedFilesSet.add(fileHash);
             formData.append('files', file);
             formData.append('fileHashes', fileHash);
         }
-    }
+    });
+
+    await Promise.all(filePromises);
 
         //formData.append('userSecurityCode', userSecurityCode);
+    if (formData.has('files')) {
+    fetch('http://localhost:9091/upload', {
+        method: 'POST',
+        body: formData,
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.otp) {
+            document.getElementById('otpMessage').innerText = "Şifre: " + data.otp;
+            const fileList = data.fileNames.join(', ');
+            document.getElementById('fileList').innerText = "Yüklenen Dosyalar: " + fileList;
+        } else {
+            document.getElementById('otpMessage').innerText = "Hata: OTP alınamadı.";
+        }
+    })
+    .catch(error => {
+        console.error('Hata:', error);
+        document.getElementById('otpMessage').innerText = "Sunucu ile iletişimde bir sorun var.";
+    });
+    }        
+}
 
-        if (formData.has('files')) {
-        fetch('http://localhost:9091/upload', {
-            method: 'POST',
-            body: formData,
-        })
+function downloadFiles() {
+    const otp = document.getElementById('otpInput').value;
+    // const userSecurityCode = document.getElementById('userSecurityCodeInput').value;
+    // if (!otp || !userSecurityCode) {
+    //     alert('Lütfen OTP kodunu ve Güvenlik kodunu girin.');
+    //     return;
+    // }
+    if (!otp) {
+    alert('Lütfen OTP kodunu girin.');
+    return;
+}
+
+    fetch(`http://localhost:9091/getAllFiles`, {
+        method : 'POST',
+        headers:{
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ otp }) //&userSecurityCode=${userSecurityCode}
+    })
         .then(response => response.json())
         .then(data => {
-            if (data.otp) {
-                document.getElementById('otpMessage').innerText = "Şifre: " + data.otp;
-                const fileList = data.fileNames.join(', ');
-                document.getElementById('fileList').innerText = "Yüklenen Dosyalar: " + fileList;
+            if (data.files && data.files.length > 0 && data.hashes && data.hashes.length) {
+                const filesContainer = document.getElementById('filesContainer');
+                filesContainer.innerHTML = ''; // Önceki dosyaları temizle
+                data.files.forEach((fileName, index) => {
+                    const fileHash = data.hashes[index];
+                    const link = document.createElement('a');
+                    link.href = `#`;
+                    link.className = 'file-link';
+                    link.textContent = fileName;
+                    link.onclick = function() {
+                    fetch(`http://localhost:9091/download`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ otp, fileHash }) // Pass otp and fileHash as JSON payload
+                    })
+                        .then(response => response.blob())
+                        .then(blob => {
+                        const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = fileName;
+                            a.click();
+                        })
+                        .catch(error => {
+                            console.error('Hata:', error);
+                            alert('Bir hata oluştu: ' + error.message);
+                        });
+                };
+                filesContainer.appendChild(link);
+            });
             } else {
-                document.getElementById('otpMessage').innerText = "Hata: OTP alınamadı.";
+                document.getElementById('filesContainer').innerText = 'Dosya bulunamadı.';
             }
         })
         .catch(error => {
             console.error('Hata:', error);
-            document.getElementById('otpMessage').innerText = "Sunucu ile iletişimde bir sorun var.";
+            alert('Bir hata oluştu: ' + error.message);
         });
-    }
 }
-
-    function downloadFiles() {
-        const otp = document.getElementById('otpInput').value;
-        // const userSecurityCode = document.getElementById('userSecurityCodeInput').value;
-        // if (!otp || !userSecurityCode) {
-        //     alert('Lütfen OTP kodunu ve Güvenlik kodunu girin.');
-        //     return;
-        // }
-        if (!otp) {
-        alert('Lütfen OTP kodunu girin.');
-        return;
-    }
-
-        fetch(`http://localhost:9091/getAllFiles`, {
-            method : 'POST',
-            headers:{
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ otp }) //&userSecurityCode=${userSecurityCode}
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.files && data.files.length > 0 && data.hashes && data.hashes.length) {
-                    const filesContainer = document.getElementById('filesContainer');
-                    filesContainer.innerHTML = ''; // Önceki dosyaları temizle
-                    data.files.forEach((fileName, index) => {
-                        const fileHash = data.hashes[index];
-                        const link = document.createElement('a');
-                        link.href = `#`;
-                        link.className = 'file-link';
-                        link.textContent = fileName;
-                        link.onclick = function() {
-                        fetch(`http://localhost:9091/download`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ otp, fileHash }) // Pass otp and fileHash as JSON payload
-                        })
-                            .then(response => response.blob())
-                            .then(blob => {
-                                const url = URL.createObjectURL(blob);
-                                const a = document.createElement('a');
-                                a.href = url;
-                                a.download = fileName;
-                                a.click();
-                            })
-                            .catch(error => {
-                                console.error('Hata:', error);
-                                alert('Bir hata oluştu: ' + error.message);
-                            });
-                    };
-                    filesContainer.appendChild(link);
-                });
-                } else {
-                    document.getElementById('filesContainer').innerText = 'Dosya bulunamadı.';
-                }
-            })
-            .catch(error => {
-                console.error('Hata:', error);
-                alert('Bir hata oluştu: ' + error.message);
-            });
-    }
 </script>
 
 </body>

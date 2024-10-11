@@ -211,39 +211,18 @@ func CheckFileHash(c *gin.Context) {
 	var existingFiles []models.FileDetails
 
 	// Aynı hash ile dosyaları kontrol et
-	if err := config.DB.Where("file_hashes @> ?", pq.StringArray{requestHash.FileHash}).Find(&existingFiles).Error; err != nil {
+	if err := config.DB.Where("file_details.file_hashes @> ? AND file_models.deleted_at IS NULL", pq.StringArray{requestHash.FileHash}).
+		Joins("JOIN file_models ON file_details.file_model_id = file_models.file_model_id").
+		Find(&existingFiles).
+		Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Veritabanı hatası"})
 		return
 	}
+
+	if len(existingFiles) > 0 {
+		c.JSON(http.StatusOK, gin.H{"exists": true, "message": "Bu dosya zaten yüklenmiş"})
+		return
+	}
 	//log.Printf("Existing Files: %+v", existingFiles)
-
-	if len(existingFiles) == 0 {
-		// Eğer dosya bulunamazsa, yüklemeye izin ver
-		c.JSON(http.StatusOK, gin.H{"message": "Dosya yüklenebilir"})
-		return
-	}
-
-	allDeleted := true
-	for _, file := range existingFiles {
-		var fileModel models.FileModel
-		// FileModel'deki DeletedAt değerini kontrol et
-		if err := config.DB.Where("file_model_id = ?", file.FileModelID).First(&fileModel).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Veritabanı hatası"})
-			return
-		}
-
-		if fileModel.DeletedAt != nil {
-			// Eğer DeletedAt boş ise, bu dosya hala aktif, yüklemeyi engelle
-			allDeleted = false
-			break
-		}
-	}
-
-	if !allDeleted {
-		// Eğer herhangi bir dosya aktifse, yüklemeye izin verme
-		c.JSON(http.StatusConflict, gin.H{"error": "Dosya zaten mevcut, yükleme yapılamaz"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Dosya yüklenebilir"})
+	c.JSON(http.StatusOK, gin.H{"exists": false, "message": "Dosya yüklenebilir"}) //{"message": "Dosya yüklenebilir"}
 }

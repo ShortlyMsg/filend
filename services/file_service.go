@@ -23,6 +23,11 @@ func DeleteOldFiles(db *gorm.DB) {
 	c := context.Background()
 
 	for _, fileModel := range fileModels {
+
+		if fileModel.DeletedAt != nil {
+			continue
+		}
+
 		// Silinme tarihini güncelle
 		now := time.Now()
 		fileModel.DeletedAt = &now
