@@ -102,10 +102,10 @@ func UploadFile(c *gin.Context) {
 		}
 	}
 	fileDetail := models.FileDetails{
-		FileDetailsID: uuid.New(),                 // ID oluşturun
-		FileNames:     pq.StringArray(fileNames),  // Tüm dosya isimlerini dizi olarak ekleyin
-		FileHashes:    pq.StringArray(fileHashes), // Tüm dosya hash'lerini dizi olarak ekleyin
-		FileModelID:   fileModel.FileModelID,      // İlgili model ID'sini ekleyin
+		FileDetailsID: uuid.New(),
+		FileNames:     pq.StringArray(fileNames),
+		FileHashes:    pq.StringArray(fileHashes),
+		FileModelID:   fileModel.FileModelID,
 	}
 	if err := config.DB.Create(&fileDetail).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Veritabanına kaydedilemedi"})
