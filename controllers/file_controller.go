@@ -79,29 +79,37 @@ func UploadFile(c *gin.Context) {
 			return
 		}
 
-		// MinIO'ya hash ismiyle yükle
-		uploadedFile.Seek(0, io.SeekStart)
-		_, err = config.MinioClient.PutObject(c, "filend", fileHash, uploadedFile, file.Size, minio.PutObjectOptions{
-			ContentType: file.Header.Get("Content-Type"),
-		})
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "MinIO'ya yüklenemedi: " + err.Error()})
-			return
-		}
+		var existingFile models.FileDetails
+		if err := config.DB.Where("file_details.file_hashes @> ? AND file_models.deleted_at IS NULL", pq.StringArray{fileHash}).
+			Joins("JOIN file_models ON file_details.file_model_id = file_models.file_model_id").
+			First(&existingFile).Error; err == nil {
+			// Dosya zaten var, MinIO'ya yüklemiyoruz ama DB'ye kaydediyoruz
+			fileNames = append(fileNames, file.Filename)
+			fileHashes = append(fileHashes, fileHash)
+		} else {
+			// MinIO'ya hash ismiyle yükle
+			uploadedFile.Seek(0, io.SeekStart)
+			_, err = config.MinioClient.PutObject(c, "filend", fileHash, uploadedFile, file.Size, minio.PutObjectOptions{
+				ContentType: file.Header.Get("Content-Type"),
+			})
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "MinIO'ya yüklenemedi: " + err.Error()})
+				return
+			}
 
-		fileNames = append(fileNames, file.Filename)
-		fileHashes = append(fileHashes, fileHash)
-
-		fileDetail := models.FileDetails{
-			FileDetailsID: uuid.New(),
-			FileNames:     pq.StringArray{file.Filename},
-			FileHashes:    pq.StringArray{fileHash},
-			FileModelID:   fileModel.FileModelID,
+			fileNames = append(fileNames, file.Filename)
+			fileHashes = append(fileHashes, fileHash)
 		}
-		if err := config.DB.Create(&fileDetail).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Veritabanına kaydedilemedi"})
-			return
-		}
+	}
+	fileDetail := models.FileDetails{
+		FileDetailsID: uuid.New(),                 // ID oluşturun
+		FileNames:     pq.StringArray(fileNames),  // Tüm dosya isimlerini dizi olarak ekleyin
+		FileHashes:    pq.StringArray(fileHashes), // Tüm dosya hash'lerini dizi olarak ekleyin
+		FileModelID:   fileModel.FileModelID,      // İlgili model ID'sini ekleyin
+	}
+	if err := config.DB.Create(&fileDetail).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Veritabanına kaydedilemedi"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"otp": otp, "fileNames": fileNames})
@@ -219,10 +227,6 @@ func CheckFileHash(c *gin.Context) {
 		return
 	}
 
-	if len(existingFiles) > 0 {
-		c.JSON(http.StatusOK, gin.H{"exists": true, "message": "Bu dosya zaten yüklenmiş"})
-		return
-	}
 	//log.Printf("Existing Files: %+v", existingFiles)
-	c.JSON(http.StatusOK, gin.H{"exists": false, "message": "Dosya yüklenebilir"}) //{"message": "Dosya yüklenebilir"}
+	c.JSON(http.StatusOK, gin.H{"message": "Dosya yüklenebilir"}) //{"message": "Dosya yüklenebilir"}
 }
