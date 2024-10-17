@@ -108,9 +108,10 @@ async function uploadFile() {
         if (hashCheckData.fileStatus[fileHash]) {
             formData.append('files', file);
             formData.append('fileHashes', fileHash);
-        }
+        }else{
         formData.append('fileNames[]', file.name);
         formData.append('fileHashes[]', fileHash);
+        }
     }
 
         //formData.append('userSecurityCode', userSecurityCode);
@@ -132,7 +133,7 @@ async function uploadFile() {
         console.error('Hata:', error);
         document.getElementById('otpMessage').innerText = "Sunucu ile iletişimde bir sorun var.";
     });
-    }        
+}        
 
 
 function downloadFiles() {

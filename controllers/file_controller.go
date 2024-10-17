@@ -50,8 +50,8 @@ func UploadFile(c *gin.Context) {
 	// 	return
 	// }
 
-	var fileNames []string
-	var fileHashes []string
+	fileNames := c.PostFormArray("fileNames[]")
+	fileHashes := c.PostFormArray("fileHashes[]")
 
 	fileModel := models.FileModel{
 		FileModelID:      uuid.New(),
