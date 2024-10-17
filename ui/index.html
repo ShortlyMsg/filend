@@ -87,7 +87,7 @@ async function uploadFile() {
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const fileHash = await calculateSHA256(file);
-        fileHashes.push({ filename: file.name, hash: fileHash });
+        fileHashes.push(fileHash);
     }
 
     const hashCheckResponse = await fetch('http://localhost:9091/checkFileHash', {
@@ -103,16 +103,17 @@ async function uploadFile() {
         // Eğer dosya hash'i zaten yüklenmemişse, formData'ya ekliyoruz
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const fileHash = fileHashes[i].hash;
+        const fileHash = fileHashes[i];
         
-        if (!hashCheckData[fileHash]) {
+        if (hashCheckData.fileStatus[fileHash]) {
             formData.append('files', file);
             formData.append('fileHashes', fileHash);
         }
+        formData.append('fileNames[]', file.name);
+        formData.append('fileHashes[]', fileHash);
     }
 
         //formData.append('userSecurityCode', userSecurityCode);
-    if (formData.has('files')) {
     fetch('http://localhost:9091/upload', {
         method: 'POST',
         body: formData,
@@ -132,7 +133,7 @@ async function uploadFile() {
         document.getElementById('otpMessage').innerText = "Sunucu ile iletişimde bir sorun var.";
     });
     }        
-}
+
 
 function downloadFiles() {
     const otp = document.getElementById('otpInput').value;

@@ -7,6 +7,7 @@ import (
 	"filend/config"
 	"filend/models"
 	"filend/services"
+	"time"
 
 	"github.com/lib/pq"
 
@@ -86,6 +87,7 @@ func UploadFile(c *gin.Context) {
 			// Dosya zaten var, MinIO'ya yüklemiyoruz ama DB'ye kaydediyoruz
 			fileNames = append(fileNames, file.Filename)
 			fileHashes = append(fileHashes, fileHash)
+			fileModel.UpdatedAt = time.Now()
 		} else {
 			// MinIO'ya hash ismiyle yükle
 			uploadedFile.Seek(0, io.SeekStart)
@@ -107,6 +109,7 @@ func UploadFile(c *gin.Context) {
 		FileHashes:    pq.StringArray(fileHashes),
 		FileModelID:   fileModel.FileModelID,
 	}
+
 	if err := config.DB.Create(&fileDetail).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Veritabanına kaydedilemedi"})
 		return
@@ -207,26 +210,32 @@ func GetAllFiles(c *gin.Context) {
 }
 
 func CheckFileHash(c *gin.Context) {
-	var requestHash struct {
-		FileHash string `json:"fileHash"`
+	var requestHashes struct {
+		FileHashes []string `json:"fileHashes"`
 	}
 
-	if err := c.ShouldBindJSON(&requestHash); err != nil {
+	if err := c.ShouldBindJSON(&requestHashes); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Geçersiz istek"})
 		return
 	}
 
-	var existingFiles []models.FileDetails
+	fileStatus := make(map[string]bool)
 
-	// Aynı hash ile dosyaları kontrol et
-	if err := config.DB.Where("file_details.file_hashes @> ? AND file_models.deleted_at IS NULL", pq.StringArray{requestHash.FileHash}).
-		Joins("JOIN file_models ON file_details.file_model_id = file_models.file_model_id").
-		Find(&existingFiles).
-		Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Veritabanı hatası"})
-		return
+	for _, fileHash := range requestHashes.FileHashes {
+		var existingFiles []models.FileDetails
+
+		err := config.DB.Where("file_details.file_hashes @> ? AND file_models.deleted_at IS NULL", pq.StringArray{fileHash}).
+			Joins("JOIN file_models ON file_details.file_model_id = file_models.file_model_id").
+			Find(&existingFiles).Error
+
+		// Eğer dosya bulunursa false, bulunamazsa true
+		if err == nil && len(existingFiles) > 0 {
+			fileStatus[fileHash] = false // Dosya mevcut
+		} else {
+			fileStatus[fileHash] = true // Dosya mevcut değil, yüklenebilir
+		}
 	}
 
 	//log.Printf("Existing Files: %+v", existingFiles)
-	c.JSON(http.StatusOK, gin.H{"message": "Dosya yüklenebilir"}) //{"message": "Dosya yüklenebilir"}
+	c.JSON(http.StatusOK, gin.H{"fileStatus": fileStatus})
 }

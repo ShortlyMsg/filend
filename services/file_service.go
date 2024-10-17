@@ -15,7 +15,7 @@ func DeleteOldFiles(db *gorm.DB) {
 	thresholdTime := time.Now().Add(-12 * time.Hour)
 
 	var fileModels []models.FileModel
-	if err := db.Where("created_at < ?", thresholdTime).Find(&fileModels).Error; err != nil {
+	if err := db.Where("updated_at < ?", thresholdTime).Find(&fileModels).Error; err != nil {
 		log.Println("Veritabanından dosya modeli alınamadı:", err)
 		return
 	}
