@@ -81,13 +81,18 @@ func UploadFile(c *gin.Context) {
 		}
 
 		var existingFile models.FileDetails
-		if err := config.DB.Where("file_details.file_hashes @> ? AND file_models.deleted_at IS NULL", pq.StringArray{fileHash}).
+		err = config.DB.Where("file_details.file_hashes @> ? AND file_models.deleted_at IS NULL", pq.StringArray{fileHash}).
 			Joins("JOIN file_models ON file_details.file_model_id = file_models.file_model_id").
-			First(&existingFile).Error; err == nil {
+			First(&existingFile).Error
+		if err == nil {
 			// Dosya zaten var, MinIO'ya yüklemiyoruz ama DB'ye kaydediyoruz
 			fileNames = append(fileNames, file.Filename)
 			fileHashes = append(fileHashes, fileHash)
-			fileModel.UpdatedAt = time.Now()
+
+			existingFile.FileModel.UpdatedAt = time.Now()
+			if err := config.DB.Save(&existingFile.FileModel).Error; err != nil {
+				return
+			}
 		} else {
 			// MinIO'ya hash ismiyle yükle
 			uploadedFile.Seek(0, io.SeekStart)
