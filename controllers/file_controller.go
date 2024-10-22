@@ -224,6 +224,11 @@ func CheckFileHash(c *gin.Context) {
 		return
 	}
 
+	if len(requestHashes.FileHashes) > 20 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "En fazla 20 dosya kontrol edilebilir"})
+		return
+	}
+
 	fileStatus := make(map[string]bool)
 
 	for _, fileHash := range requestHashes.FileHashes {
