@@ -13,11 +13,25 @@
     ```sh
     go run main.go
     ```
+## For Ui - Prerequisites
+1. Navigate into the Ui:
+    ```sh
+   cd filend-ui
+    ```
+2. Download Node Modules:
+    ```sh
+    npm install
+    ```
+3. Start the server:
+    ```sh
+    npm run serve
+    ```
 
 ## Endpoints
 - ### **Ui**  
 - [http://localhost:9091/ui/](http://localhost:9091/ui/) 
-- ### **Api**
+- ### **Api / {Post}** 
+- http://localhost:9091/checkFileHash
 - http://localhost:9091/upload
 
 - http://localhost:9091/download/:{otp}?fileHash=${fileHash}
