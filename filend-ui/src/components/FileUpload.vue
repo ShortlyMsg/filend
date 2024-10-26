@@ -6,7 +6,7 @@
         <h2 class="text-2xl font-bold">Filend - File Send</h2>
         <p class="text-sm text-gray-600">Tek tıkla gönder, tek kodla al!</p>
         <p class="text-sm text-red-500 mt-2">
-          Tek Seferlik Kodu Kaydetmeyi Unutmayınız!
+          Test Yazısı
         </p>
       </div>
       <!-- Gönderen -->
@@ -51,15 +51,6 @@ export default {
     };
   },
   methods: {
-    dragEnter() {
-      console.log('Dosya alanına girildi.');
-    },
-    dragOver() {
-      console.log('Dosya alanının üstünde.');
-    },
-    dragLeave() {
-      console.log('Dosya alanından çıkıldı.');
-    },
     handleDrop(event) {
       const files = event.dataTransfer.files;
       console.log('Bırakılan dosyalar:', files);

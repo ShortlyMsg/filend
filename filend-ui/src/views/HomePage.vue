@@ -1,15 +1,20 @@
 <template>
-  <div class="home">
-    <h1 class="text-4xl font-bold text-center mt-12">Hoş Geldiniz</h1>
-    <div class="flex justify-center mt-8 space-x-6">
+  <div class="home min-h-screen flex">
+    <!-- Sol taraf (Upload) -->
+    <div class="flex-1 flex flex-col items-center justify-center bg-blue-100">
+      <h2 class="text-3xl font-semibold mb-4 text-blue-800">Dosya Gönder</h2>
       <button 
         @click="goToUpload" 
-        class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700 transition duration-300">
+        class="bg-blue-500 text-white py-3 px-6 rounded-lg shadow-lg hover:bg-blue-700 transition duration-300">
         Gönder
       </button>
+    </div>
+    <!-- Sağ taraf (Download) -->
+    <div class="flex-1 flex flex-col items-center justify-center bg-green-100">
+      <h2 class="text-3xl font-semibold mb-4 text-green-800">Dosya Al</h2>
       <button 
         @click="goToDownload" 
-        class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700 transition duration-300">
+        class="bg-green-500 text-white py-3 px-6 rounded-lg shadow-lg hover:bg-green-700 transition duration-300">
         Al
       </button>
     </div>
