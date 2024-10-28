@@ -25,8 +25,13 @@ function goBackStep() {
   }
 }
 
-// function openFileDialog() {
-//   fileInput.value.click();
+function onFileChange(event) {
+  const newFiles = Array.from(event.target.files);
+  selectedFiles.value = [...selectedFiles.value, ...newFiles];
+}
+
+// const removeFile = (index: number) => {
+//   files.value.splice(index, 1)
 // }
 
 async function calculateSHA256(file) {
@@ -149,9 +154,11 @@ async function uploadFiles() {
             <span>{{ (file.size / (1024 * 1024)).toFixed(2) }} MB</span>
           </li>
         </ul>
-        <input type="file" 
+        </div>
+        <div class="mt-4 flex justify-end space-x-3">
+          <input type="file" 
                 multiple
-                class="block w-full text-sm text-gray-500
+                class="block text-sm text-gray-500
                         file:mr-4 file:py-2 file:px-4
                         file:rounded-full file:border-0
                         file:text-sm file:font-semibold
@@ -159,8 +166,6 @@ async function uploadFiles() {
                         hover:file:bg-blue-100"
                 @change="onFileChange"
           />
-        </div>
-        <div class="mt-4 flex justify-end space-x-3">
           <button @click="goBackStep" class="px-4 py-2 text-gray-600 hover:text-gray-800">
             Cancel
           </button>
