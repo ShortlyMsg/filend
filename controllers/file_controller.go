@@ -147,6 +147,11 @@ func DownloadFile(c *gin.Context) {
 		return
 	}
 
+	if fileModel.DeletedAt != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Bu dosya silindiği için indirilemez"})
+		return
+	}
+
 	var fileDetails []models.FileDetails
 	if err := config.DB.Where("file_model_id = ?", fileModel.FileModelID).Find(&fileDetails).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "FileDetails Getirilemedi"})
@@ -195,6 +200,11 @@ func GetAllFiles(c *gin.Context) {
 	var fileModel models.FileModel
 	if err := config.DB.Where("otp = ?", otp).First(&fileModel).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Dosyalar bulunamadı"})
+		return
+	}
+
+	if fileModel.DeletedAt != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Bu dosya silindiği için indirilemez"})
 		return
 	}
 

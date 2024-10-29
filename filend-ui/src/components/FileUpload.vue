@@ -30,9 +30,9 @@ function onFileChange(event) {
   selectedFiles.value = [...selectedFiles.value, ...newFiles];
 }
 
-// const removeFile = (index: number) => {
-//   files.value.splice(index, 1)
-// }
+function removeFile(index) {
+  selectedFiles.value.splice(index, 1);
+}
 
 async function calculateSHA256(file) {
   const arrayBuffer = await file.arrayBuffer();
@@ -116,11 +116,11 @@ async function uploadFiles() {
 
 <template>
   <div class="flex justify-center items-center h-screen bg-gray-100">
-    <div class="bg-white rounded-lg shadow-lg p-6 fixed-size-1080p">
+    <div class="bg-white rounded-lg shadow-lg p-6 fixed-size">
+      <h2 class="text-2xl font-bold mb-4">Filend - File Send</h2>
+      <p class="text-sm text-gray-600 mb-2">Tek tıkla gönder, tek kodla al!</p>
       <div v-if="currentStep === 1">
         <!-- CS 1 Upload -->
-        <h2 class="text-2xl font-bold mb-4">Filend - File Send</h2>
-        <p class="text-sm text-gray-600 mb-2">Tek tıkla gönder, tek kodla al!</p>
         <div class="border-2 border-dashed border-gray-300 rounded-lg p-14 text-center fixed-size-border2"
           @dragenter.prevent="dragEnter"
           @dragover.prevent="dragOver"
@@ -145,16 +145,23 @@ async function uploadFiles() {
 
       <div v-else-if="currentStep === 2">
         <!-- CS 2 Önizleme -->
-        <h2 class="text-2xl font-bold mb-4">Yüklenecek Dosyalar</h2>
         <div class="border-2 border-gray-300 rounded-lg p-14 text-center h-64 overflow-y-auto fixed-size-border2">
         <ul>
           <li v-for="(file, index) in selectedFiles" :key="index" class="flex justify-between mb-2">
             <img src="@/assets/file.svg" alt="file icon" class="w-4 h-4" />
             <span>{{ file.name }}</span>
             <span>{{ (file.size / (1024 * 1024)).toFixed(2) }} MB</span>
+            <button @click="removeFile(index)" class="text-red-500 hover:text-red-700">
+              ✕
+            </button>
           </li>
         </ul>
         </div>
+        <div class="mt-4 text-sm text-gray-600 flex justify-between">
+          <p>Accepted file types: All Types</p>
+          <p>Max files: 20 | Max file size: 2GB</p>
+        </div> 
+        <div class="mt-4 w-[656px] h-[72px] bg-white rounded-lg shadow-lg p-6">
         <div class="mt-4 flex justify-end space-x-3">
           <input type="file" 
                 multiple
@@ -173,11 +180,11 @@ async function uploadFiles() {
           Gönder
           </button>
         </div>
+        </div>
       </div>
 
       <div v-else-if="currentStep === 3">
         <!-- CS 3 OTP-->
-        <h2 class="text-2xl font-bold mb-4">Dosyalar Yüklendi!</h2>
         <div class="border-2 border-gray-300 rounded-lg p-14 text-center relative fixed-size-border2 flex flex-col justify-between h-full">
           <div>
             <p id="otpMessage" class="text-3xl text-green-600 font-semibold">{{ otpMessage }}</p>
@@ -189,18 +196,22 @@ async function uploadFiles() {
           <p class="mt-4">Yukardaki kodu alıcıya gönderiniz.</p>
         </div>
         <p id="fileList" class="mt-4 text-gray-600">{{ fileListMessage }}</p>
+        <div class="mt-4 text-sm text-gray-600 flex justify-between">
+          <p>Accepted file types: All Types</p>
+          <p>Max files: 20 | Max file size: 2GB</p>
+      </div>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.fixed-size-1080p {
-  width: 492px;
-  height: 398px;
+.fixed-size {
+  width: 656px;  
+  height: 531px;  /*w 492px h 398px 1080p*/
 }
 .fixed-size-border2 {
-  width: 444px;
-  height: 250px;
+  width: 600px;
+  height: 319px;  /*w 450px h 239px 1080p*/
 }
 </style>
