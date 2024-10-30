@@ -116,19 +116,19 @@ async function uploadFiles() {
 
 <template>
   <div class="flex justify-center items-center h-screen bg-gray-100">
-    <div class="bg-white rounded-lg shadow-lg p-6 fixed-size">
+    <div class="bg-white rounded-lg shadow-lg p-6 max-w-xl w-full">
       <h2 class="text-2xl font-bold mb-4">Filend - File Send</h2>
       <p class="text-sm text-gray-600 mb-2">Tek tıkla gönder, tek kodla al!</p>
       <div v-if="currentStep === 1">
         <!-- CS 1 Upload -->
-        <div class="border-2 border-dashed border-gray-300 rounded-lg p-14 text-center fixed-size-border2"
+        <div class="border-2 border-dashed border-gray-300 rounded-lg p-24 text-center"
           @dragenter.prevent="dragEnter"
           @dragover.prevent="dragOver"
           @dragleave.prevent="dragLeave"
           @drop.prevent="handleDrop"
         >
-          <p class="text-gray-600">Drag and drop a files here</p>
-          <p class="text-gray-600 my-2">or</p>
+          <p class="text-gray-600">Dosyayı Buraya Sürükle Bırak</p>
+          <p class="text-gray-600">Yada</p>
           <label
             for="file-upload"
             class="cursor-pointer text-blue-600 border border-blue-600 rounded-md px-4 py-2 inline-block hover:bg-blue-600 hover:text-white transition"
@@ -137,7 +137,7 @@ async function uploadFiles() {
           </label>
           <input id="file-upload" type="file" class="hidden" @change="handleFileUpload" multiple />
         </div>
-        <div class="mt-4 text-sm text-gray-600 flex justify-between">
+        <div class="mt-4 text-xs text-gray-600 flex justify-between">
           <p>Accepted file types: All Types</p>
           <p>Max files: 20 | Max file size: 2GB</p>
         </div>
@@ -145,58 +145,64 @@ async function uploadFiles() {
 
       <div v-else-if="currentStep === 2">
         <!-- CS 2 Önizleme -->
-        <div class="border-2 border-gray-300 rounded-lg p-14 text-center h-64 overflow-y-auto fixed-size-border2">
-        <ul>
-          <li v-for="(file, index) in selectedFiles" :key="index" class="flex justify-between mb-2">
-            <img src="@/assets/file.svg" alt="file icon" class="w-4 h-4" />
-            <span>{{ file.name }}</span>
-            <span>{{ (file.size / (1024 * 1024)).toFixed(2) }} MB</span>
-            <button @click="removeFile(index)" class="text-red-500 hover:text-red-700">
-              ✕
-            </button>
-          </li>
-        </ul>
+        <div class="border-2 border-gray-300 rounded-lg p-6 text-center h-64 overflow-y-auto">
+          <ul>
+            <li v-for="(file, index) in selectedFiles" :key="index" class="mb-4">
+              <div class="flex items-center">
+                <img src="@/assets/file.svg" alt="file icon" class="32px" />
+                <span class="text-sm ml-4">{{ file.name }}</span>
+                <div class="ml-auto flex items-center">
+                  <button @click="removeFile(index)" class="text-red-500 hover:text-red-700 ml-2">
+                  ✕
+                  </button>
+                </div>
+              </div>
+              <div class="mt-1">
+                <div class="flex flex-col">
+                  <div class="w-full bg-gray-200 rounded-full h-2 mr-2">
+                    <div :style="{ width: `${(file.uploadProgress || 0)}%` }" class="bg-blue-600 h-2 rounded-full"></div>
+                  </div>
+                  <span class="text-sm text-left mt-1">
+                    {{ file.uploadProgress ? `${(file.uploadProgress || 0).toFixed(2)} MB / ${(file.size / (1024 * 1024)).toFixed(2)} MB` : `0.00 MB / ${(file.size / (1024 * 1024)).toFixed(2)} MB` }}
+                  </span>
+                </div>
+              </div>
+            </li>
+          </ul>
         </div>
-        <div class="mt-4 text-sm text-gray-600 flex justify-between">
+        <div class="mt-4 text-xs text-gray-600 flex justify-between">
           <p>Accepted file types: All Types</p>
           <p>Max files: 20 | Max file size: 2GB</p>
         </div> 
-        <div class="mt-4 w-[656px] h-[72px] bg-white rounded-lg shadow-lg p-6">
         <div class="mt-4 flex justify-end space-x-3">
-          <input type="file" 
-                multiple
-                class="block text-sm text-gray-500
-                        file:mr-4 file:py-2 file:px-4
-                        file:rounded-full file:border-0
-                        file:text-sm file:font-semibold
-                        file:bg-blue-50 file:text-blue-700
-                        hover:file:bg-blue-100"
-                @change="onFileChange"
-          />
+          <label class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 cursor-pointer">
+            <input type="file" multiple hidden @change="onFileChange"/>
+          Upload More Files
+          </label>
           <button @click="goBackStep" class="px-4 py-2 text-gray-600 hover:text-gray-800">
-            Cancel
+            Geri
           </button>
           <button @click="uploadFiles" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-          Gönder
+            Gönder
           </button>
-        </div>
         </div>
       </div>
 
       <div v-else-if="currentStep === 3">
         <!-- CS 3 OTP-->
-        <div class="border-2 border-gray-300 rounded-lg p-14 text-center relative fixed-size-border2 flex flex-col justify-between h-full">
+        <div class="border-2 border-gray-300 rounded-lg p-24 text-center relative flex flex-col justify-between h-64">
           <div>
-            <p id="otpMessage" class="text-3xl text-green-600 font-semibold">{{ otpMessage }}</p>
-            <button @click="copyToClipboard(otpMessage)" class="absolute top-4 right-4 flex items-center text-blue-500 hover:text-blue-700 transition">
-              <img v-if="!copied" src="@/assets/copy.svg" alt="Kopyala" class="w-5 h-5 mr-1" />
-              <p v-else class="text-m text-green-500 mt-2">✓</p>
+            <p id="otpMessage" class="text-6xl text-green-600 font-extrabold">{{ otpMessage }}</p>
+            <button @click="copyToClipboard(otpMessage)" class="absolute top-4 right-4 flex items-center">
+              <span class="flex items-center border-2 border-gray-300 rounded-full p-2 transition">
+                <img v-if="!copied" src="@/assets/copy.svg" alt="Kopyala" class="w-5 h-5" />
+                <img v-else src="@/assets/ok.svg" class="w-5 h-5">
+              </span>
             </button>
           </div>
-          <p class="mt-4">Yukardaki kodu alıcıya gönderiniz.</p>
+          <p class="mt-12">Yukardaki kodu alıcıya gönderiniz.</p>
         </div>
-        <p id="fileList" class="mt-4 text-gray-600">{{ fileListMessage }}</p>
-        <div class="mt-4 text-sm text-gray-600 flex justify-between">
+        <div class="mt-4 text-xs text-gray-600 flex justify-between">
           <p>Accepted file types: All Types</p>
           <p>Max files: 20 | Max file size: 2GB</p>
       </div>
