@@ -4,13 +4,17 @@ import { ref } from 'vue';
 const currentStep = ref(1); // 1: Dosya Seçimi, 2: Önizleme, 3: OTP Gösterimi
 const selectedFiles = ref([]);
 const otpMessage = ref("");
-const fileListMessage = ref("");
+//const fileListMessage = ref("");
+const copyNotification = ref('');
 const copied = ref(false);
+const allFilesUploaded = ref(false);
 
 function copyToClipboard(text) {
   navigator.clipboard.writeText(text).then(() => {
+    copyNotification.value = '';
     copied.value = true;
     setTimeout(() => {
+      copyNotification.value = '';
       copied.value = false;
     }, 2000);
   });
@@ -25,6 +29,9 @@ function goBackStep() {
 function onFileChange(event) {
   const newFiles = Array.from(event.target.files);
   selectedFiles.value = [...selectedFiles.value, ...newFiles];
+  if (selectedFiles.value.length > 0) {
+    currentStep.value = 2; // İkinci aşamaya geç
+  }
 }
 
 function removeFile(index) {
@@ -39,23 +46,27 @@ async function calculateSHA256(file) {
   return hashHex;
 }
 
-function handleFileUpload(event) {
-  const files = event.target.files;
-  selectedFiles.value = Array.from(files);
-  currentStep.value = 2; // Dosya önizleme adımına geç
-}
+// function handleFileUpload(event) {
+//   const files = event.target.files;
+//   selectedFiles.value = Array.from(files);
+//   currentStep.value = 2; // Dosya önizleme adımına geç
+// }
 
-function handleDrop(event) {
-  const files = event.dataTransfer.files;
-  handleFileUpload({ target: { files } });
-}
+// function handleDrop(event) {
+//   const files = event.dataTransfer.files;
+//   handleFileUpload({ target: { files } });
+// }
 
 async function uploadFiles() {
-  // Dosyaları yüklemeye başla
+  allFilesUploaded.value = false;
+  
   const fileHashes = [];
   for (const file of selectedFiles.value) {
     const fileHash = await calculateSHA256(file);
     fileHashes.push(fileHash);
+
+    file.totalSize = (file.size / (1024 * 1024)).toFixed(2);
+    file.uploadProgress = 0;
   }
 
   // Hash kontrol isteği
@@ -66,42 +77,60 @@ async function uploadFiles() {
     },
     body: JSON.stringify({ fileHashes }),
   });
+
   const hashCheckData = await hashCheckResponse.json();
 
-  // Dosya yükleme işlemi için formData oluştur
-  const formData = new FormData();
   selectedFiles.value.forEach((file, i) => {
+    const formData = new FormData();
     const fileHash = fileHashes[i];
+    
     if (hashCheckData.fileStatus[fileHash]) {
       formData.append("files", file);
       formData.append("fileHashes", fileHash);
     } else {
       formData.append("fileNames[]", file.name);
       formData.append("fileHashes[]", fileHash);
-      selectedFiles.value[i].uploadProgress = 100
     }
-  });
 
-  // Dosya yükleme isteği
-  fetch("http://localhost:9091/upload", {
-    method: "POST",
-    body: formData,
-  })
-    .then(response => response.json())
-    .then(data => {
-      if (data.otp) {
-        otpMessage.value = data.otp;
-        fileListMessage.value = "Yüklenen Dosyalar: " + data.fileNames.join(", ");
-        currentStep.value = 3; // OTP gösterim adımına geç
-      } else {
-        otpMessage.value = "Hata: OTP alınamadı.";
+
+  const xhr = new XMLHttpRequest();
+  xhr.upload.onprogress = (event) => {
+    if (event.lengthComputable) {
+      const progressValue = (event.loaded / event.total) * 100;
+      progress.value = progressValue;
+
+      const totalSizeMB = (event.total / (1024 * 1024)).toFixed(2);
+      const loadedSizeMB = (event.loaded / (1024 * 1024)).toFixed(2);
+        
+      file.uploadProgress = loadedSizeMB;
+      file.totalSize = totalSizeMB;
       }
-    })
-    .catch(error => {
-      console.error("Hata:", error);
-      otpMessage.value = "Sunucu ile iletişimde bir sorun var.";
-    });
+    };
+
+  xhr.onload = () => {
+    const data = JSON.parse(xhr.responseText);
+    if (data.success) {
+      allFilesUploaded.value = true;
+      otpMessage.value = data.otp;
+      currentStep.value = 3; 
+    } else {
+      otpMessage.value = "Hata: OTP alınamadı.";
+    }
+  };
+
+  xhr.onerror = () => {
+    console.error("Hata: Sunucu ile iletişimde bir sorun var.");
+    otpMessage.value = "Sunucu ile iletişimde bir sorun var.";
+  };
+
+  xhr.open("POST", "http://localhost:9091/upload");
+  xhr.send(formData);
+});
 }
+
+watch(selectedFiles, () => {
+  allFilesUploaded.value = selectedFiles.value.length === 0; // Tüm dosyalar yüklendiğinde güncelle
+});
 </script>
 <!-- <script setup>
 //import { computed } from 'vue'
@@ -117,7 +146,7 @@ async function uploadFiles() {
     <div class="bg-white rounded-lg shadow-lg p-6 max-w-xl w-full">
       <h2 class="text-2xl font-bold mb-4">Filend - File Send</h2>
       <p class="text-sm text-gray-600 mb-2">Tek tıkla gönder, tek kodla al!</p>
-      <div v-if="currentStep === 1 && false">
+      <div v-if="currentStep === 1">
         <!-- CS 1 Upload -->
         <div class="border-2 border-dashed border-gray-300 rounded-lg p-24 text-center"
           @dragenter.prevent="dragEnter"
@@ -133,7 +162,7 @@ async function uploadFiles() {
           >
             Dosya Seç
           </label>
-          <input id="file-upload" type="file" class="hidden" @change="handleFileUpload" multiple />
+          <input id="file-upload" type="file" class="hidden" @change="onFileChange" multiple />
         </div>
         <div class="mt-4 text-xs text-gray-600 flex justify-between">
           <p>Accepted file types: All Types</p>
@@ -141,24 +170,25 @@ async function uploadFiles() {
         </div>
       </div>
 
-      <div v-else-if="currentStep === 2 || true">
+      <div v-else-if="currentStep === 2">
         <!-- CS 2 Önizleme -->
         <div class="border-2 border-gray-300 rounded-lg p-6 text-center h-64 overflow-y-auto">
           <ul>
             <li v-for="(file, index) in selectedFiles" :key="index" class="mb-4">
               <div class="flex items-center">
-                <img src="@/assets/file.svg" alt="file icon" class="w-8 h-8" />
-                <div class="flex flex-col ml-4 w-full">
-                  <div class="flex items-center">
-                    <span class="text-sm">{{ file.name }}</span>
-                    <button @click="removeFile(index)" class="ml-auto font-extrabold text-red-500 hover:text-red-700">✕</button>
-                  </div>
-                  <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
+                <img src="@/assets/file.svg" alt="file icon" class="32px" />
+                <span class="text-sm ml-4">{{ file.name }}</span>
+                <div class="ml-auto flex items-center">
+                  <button @click="removeFile(index)" class="text-red-500 hover:text-red-700 ml-2">✕</button>
+                </div>
+              </div>
+              <div class="mt-1">
+                <div class="flex flex-col">
+                  <div class="w-full bg-gray-200 rounded-full h-2 mr-2">
                     <div :style="{ width: `${(file.uploadProgress || 0)}%` }" class="bg-blue-600 h-2 rounded-full"></div>
                   </div>
-                  <span class="text-xs text-left mt-1">
-                    {{ file.uploadProgress ? `${(file.uploadProgress || 0).toFixed(2)} MB / ${(file.size / (1024 * 1024))
-                    .toFixed(2)} MB` : `0.00 MB / ${(file.size / (1024 * 1024)).toFixed(2)} MB` }}
+                  <span class="text-sm text-left mt-1">
+                    {{ file.uploadProgress ? `${(file.uploadProgress || 0).toFixed(2)} MB / ${(file.size / (1024 * 1024)).toFixed(2)} MB` : `0.00 MB / ${(file.size / (1024 * 1024)).toFixed(2)} MB` }}
                   </span>
                 </div>
               </div>
