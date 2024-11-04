@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue';
+import FileIcon from '@/utils/FileIcon.vue';
 
 const currentStep = ref(1); // 1: Dosya Seçimi, 2: Önizleme, 3: OTP Gösterimi
 const selectedFiles = ref([]);
@@ -103,21 +104,13 @@ async function uploadFiles() {
     });
 }
 </script>
-<!-- <script setup>
-//import { computed } from 'vue'
-
-
-//const iconSrc = computed(() => {
-  //if (.png)
-//})
-</script> -->
 
 <template>
   <div class="flex justify-center items-center h-screen bg-gray-100">
     <div class="bg-white rounded-lg shadow-lg p-6 max-w-xl w-full">
       <h2 class="text-2xl font-bold mb-4">Filend - File Send</h2>
       <p class="text-sm text-gray-600 mb-2">Tek tıkla gönder, tek kodla al!</p>
-      <div v-if="currentStep === 1 && false">
+      <div v-if="currentStep === 1">
         <!-- CS 1 Upload -->
         <div class="border-2 border-dashed border-gray-300 rounded-lg p-24 text-center"
           @dragenter.prevent="dragEnter"
@@ -141,13 +134,13 @@ async function uploadFiles() {
         </div>
       </div>
 
-      <div v-else-if="currentStep === 2 || true">
+      <div v-else-if="currentStep === 2">
         <!-- CS 2 Önizleme -->
         <div class="border-2 border-gray-300 rounded-lg p-6 text-center h-64 overflow-y-auto">
           <ul>
             <li v-for="(file, index) in selectedFiles" :key="index" class="mb-4">
               <div class="flex items-center">
-                <img src="@/assets/file.svg" alt="file icon" class="w-8 h-8" />
+                <FileIcon :fileName="file.name" class="32px"/>
                 <div class="flex flex-col ml-4 w-full">
                   <div class="flex items-center">
                     <span class="text-sm">{{ file.name }}</span>
@@ -171,7 +164,7 @@ async function uploadFiles() {
         </div> 
         <div class="mt-4 flex justify-end space-x-3">
           <label class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 cursor-pointer">
-            <input type="file" multiple hidden @change="onFileChange"/>
+          <input type="file" multiple hidden @change="onFileChange"/>
           Upload More Files
           </label>
           <button @click="goBackStep" class="px-4 py-2 text-gray-600 hover:text-gray-800">
@@ -190,8 +183,8 @@ async function uploadFiles() {
             <p id="otpMessage" class="text-6xl text-green-600 font-extrabold">{{ otpMessage }}</p>
             <button @click="copyToClipboard(otpMessage)" class="absolute top-4 right-4 flex items-center">
               <span class="flex items-center border-2 border-gray-300 rounded-full p-2 transition">
-                <img v-if="!copied" src="@/assets/copy.svg" alt="Kopyala" class="w-5 h-5" />
-                <img v-else src="@/assets/ok.svg" class="w-5 h-5">
+                <img v-if="!copied" src="@/assets/copy-icon.svg" alt="Kopyala" class="w-5 h-5" />
+                <img v-else src="@/assets/ok.svg" class="w-5 h-5">  
               </span>
             </button>
           </div>
