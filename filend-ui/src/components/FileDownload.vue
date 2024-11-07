@@ -64,13 +64,13 @@ const downloadFile = async (index) => {
 </script>
 
 <template>
-  <div class="flex justify-center items-center h-screen bg-gray-100">
+  <div class="flex justify-center items-center h-screen">
     <div class="bg-white rounded-lg shadow-lg p-6 max-w-xl w-full">
       <div class="mb-4">
         <input 
           type="text" 
           v-model="otp" 
-          class="border border-gray-300 p-2 rounded"
+          class="border border-green-400 p-2 rounded"
           placeholder="OTP kodunu girin"
         />
       </div>
@@ -82,7 +82,7 @@ const downloadFile = async (index) => {
               <div class="flex flex-col ml-4 w-full">
                 <div class="flex items-center">
                   <span class="text-sm">{{ file.name }}</span>
-                  <img src="@/assets/download.svg" alt="Download" @click="downloadFile(index)" class="ml-auto cursor-pointer w-6 h-6 text-[#5D3FD3]" />
+                  <img src="@/assets/download.svg" alt="Download" @click="downloadFile(index)" class="ml-auto cursor-pointer w-6 h-6" />
                 </div>
               </div>
             </div>
@@ -90,7 +90,7 @@ const downloadFile = async (index) => {
         </ul>
       </div>
       <div class="mt-4 flex justify-end space-x-3">
-        <button @click="fetchFiles" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+        <button @click="fetchFiles" class="px-4 py-2 bg-green-400 text-white rounded hover:bg-blue-700">
         Listele
         </button>
       </div>

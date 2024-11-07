@@ -33,7 +33,18 @@ func GenerateFileHash(file io.Reader) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
+func UpdateFileTimeByHash(fileHash string) error {
+
+	err := config.DB.Model(&models.FileModel{}).
+		Joins("JOIN file_details ON file_details.file_model_id = file_models.file_model_id").
+		Where("file_details.file_hashes @> ?", pq.StringArray{fileHash}).
+		Update("updated_at", time.Now()).Error
+
+	return err
+}
+
 func UploadFile(c *gin.Context) {
+	config.DB = config.DB.Debug()
 
 	form, err := c.MultipartForm()
 	if err != nil {
@@ -89,8 +100,8 @@ func UploadFile(c *gin.Context) {
 			fileNames = append(fileNames, file.Filename)
 			fileHashes = append(fileHashes, fileHash)
 
-			existingFile.FileModel.UpdatedAt = time.Now()
-			if err := config.DB.Save(&existingFile.FileModel).Error; err != nil {
+			if err := UpdateFileTimeByHash(fileHash); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "UpdatedAt güncellenemedi"})
 				return
 			}
 		} else {

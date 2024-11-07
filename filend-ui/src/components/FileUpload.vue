@@ -106,7 +106,7 @@ async function uploadFiles() {
 </script>
 
 <template>
-  <div class="flex justify-center items-center h-screen bg-gray-100">
+  <div class="flex justify-center items-center h-screen">
     <div class="bg-white rounded-lg shadow-lg p-6 max-w-xl w-full">
       <h2 class="text-2xl font-bold mb-4">Filend - File Send</h2>
       <p class="text-sm text-gray-600 mb-2">Tek tıkla gönder, tek kodla al!</p>
