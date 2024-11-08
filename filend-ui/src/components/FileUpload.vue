@@ -2,11 +2,11 @@
 import { ref } from 'vue';
 import FileIcon from '@/utils/FileIcon.vue';
 
-const currentStep = ref(1); // 1: Dosya Seçimi, 2: Önizleme, 3: OTP Gösterimi
+const currentStep = ref(3); // 1: Dosya Seçimi, 2: Önizleme, 3: OTP Gösterimi
 const selectedFiles = ref([]);
 const otpMessage = ref("");
-const fileListMessage = ref("");
 const copied = ref(false);
+const showOptions = ref(false);
 
 function copyToClipboard(text) {
   navigator.clipboard.writeText(text).then(() => {
@@ -15,6 +15,21 @@ function copyToClipboard(text) {
       copied.value = false;
     }, 2000);
   });
+}
+function showShareOptions(){
+  showOptions.value = !showOptions.value;
+}
+function shareViaMail() {
+  const mailtoLink = `mailto:?subject=OTP&body=${otpMessage.value}`;
+  window.location.href = mailtoLink;
+}
+function shareViaWhatsapp() {
+  const whatsappLink = `https://wa.me/?text=${otpMessage.value}`;
+  window.open(whatsappLink, '_blank');
+}
+function shareViaTelegram() {
+  const telegramLink = `https://t.me/share/url?url=${encodeURIComponent(otpMessage.value)}&text=OTP%20Kodunuz`;
+  window.open(telegramLink, '_blank');
 }
 
 function goBackStep() {
@@ -92,7 +107,6 @@ async function uploadFiles() {
     .then(data => {
       if (data.otp) {
         otpMessage.value = data.otp;
-        fileListMessage.value = "Yüklenen Dosyalar: " + data.fileNames.join(", ");
         currentStep.value = 3; // OTP gösterim adımına geç
       } else {
         otpMessage.value = "Hata: OTP alınamadı.";
@@ -179,9 +193,26 @@ async function uploadFiles() {
       <div v-else-if="currentStep === 3">
         <!-- CS 3 OTP-->
         <div class="border-2 border-gray-300 rounded-lg p-24 text-center relative flex flex-col justify-between h-64">
+          <div v-if="showOptions" class="absolute top-14 right-4 flex-col">
+            <button @click="shareViaMail" class="flex items-center justify-center border-2 border-[#e2abab] rounded-full p-2 transition">
+              <img src="@/assets/mail-icon.svg" alt="Mail" class="w-5 h-5" />
+            </button>
+            <button @click="shareViaWhatsapp" class="flex items-center justify-center border-2 border-[#e2abab] rounded-full p-2 transition">
+              <img src="@/assets/whatsapp-icon.svg" alt="WhatsApp" class="w-5 h-5" />
+            </button>
+            <button @click="shareViaTelegram" class="flex items-center justify-center border-2 border-[#e2abab] rounded-full p-2 transition">
+              <img src="@/assets/telegram-icon.svg" alt="WhatsApp" class="w-5 h-5" />
+            </button>
+          </div>
           <div>
             <p id="otpMessage" class="text-6xl text-green-600 font-extrabold">{{ otpMessage }}</p>
-            <button @click="copyToClipboard(otpMessage)" class="absolute top-4 right-4 flex items-center">
+            <button @click="showShareOptions(otpMessage)" class="absolute top-4 right-4 flex items-center">
+              <span class="flex items-center border-2 border-gray-300 rounded-full p-2 transition">
+                <img src="@/assets/share-icon.svg" alt="Paylaş" class="w-5 h-5" />
+              </span>
+            </button>
+
+            <button @click="copyToClipboard(otpMessage)" class="absolute top-4 right-16 flex items-center">
               <span class="flex items-center border-2 border-gray-300 rounded-full p-2 transition">
                 <img v-if="!copied" src="@/assets/copy-icon.svg" alt="Kopyala" class="w-5 h-5" />
                 <img v-else src="@/assets/ok.svg" class="w-5 h-5">  
@@ -193,7 +224,7 @@ async function uploadFiles() {
         <div class="mt-4 text-xs text-gray-600 flex justify-between">
           <p>Accepted file types: All Types</p>
           <p>Max files: 20 | Max file size: 2GB</p>
-      </div>
+        </div>
       </div>
     </div>
   </div>
