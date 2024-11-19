@@ -44,7 +44,6 @@ func UpdateFileTimeByHash(fileHash string) error {
 }
 
 func UploadFile(c *gin.Context) {
-	config.DB = config.DB.Debug()
 
 	form, err := c.MultipartForm()
 	if err != nil {
@@ -97,9 +96,6 @@ func UploadFile(c *gin.Context) {
 			First(&existingFile).Error
 		if err == nil {
 			// Dosya zaten var, MinIO'ya yüklemiyoruz ama DB'ye kaydediyoruz
-			fileNames = append(fileNames, file.Filename)
-			fileHashes = append(fileHashes, fileHash)
-
 			if err := UpdateFileTimeByHash(fileHash); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "UpdatedAt güncellenemedi"})
 				return

@@ -1,8 +1,9 @@
 <script setup>
 import { ref } from 'vue';
+import axios from 'axios';
 import FileIcon from '@/utils/FileIcon.vue';
 
-const currentStep = ref(3); // 1: Dosya Seçimi, 2: Önizleme, 3: OTP Gösterimi
+const currentStep = ref(1); // 1: Dosya Seçimi, 2: Önizleme, 3: OTP Gösterimi
 const selectedFiles = ref([]);
 const otpMessage = ref("");
 const copied = ref(false);
@@ -94,28 +95,33 @@ async function uploadFiles() {
     } else {
       formData.append("fileNames[]", file.name);
       formData.append("fileHashes[]", fileHash);
-      selectedFiles.value[i].uploadProgress = 100
     }
   });
 
-  // Dosya yükleme isteği
-  fetch("http://localhost:9091/upload", {
-    method: "POST",
-    body: formData,
-  })
-    .then(response => response.json())
-    .then(data => {
-      if (data.otp) {
-        otpMessage.value = data.otp;
-        currentStep.value = 3; // OTP gösterim adımına geç
-      } else {
-        otpMessage.value = "Hata: OTP alınamadı.";
-      }
-    })
-    .catch(error => {
-      console.error("Hata:", error);
-      otpMessage.value = "Sunucu ile iletişimde bir sorun var.";
+
+  try {
+    const response = await axios.post("http://localhost:9091/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+      onUploadProgress: progressEvent => {
+        console.log("Yüklendi:", progressEvent.loaded);
+        console.log("Toplam:", progressEvent.total);
+        selectedFiles.value.forEach(file => {
+          file.uploadProgress = Math.round(
+            (progressEvent.loaded / progressEvent.total) * 100);
+        });
+      },
     });
+
+    if (response.data.otp) {
+      otpMessage.value = response.data.otp;
+      currentStep.value = 3; // OTP gösterim adımına geç
+    } else {
+      otpMessage.value = "Hata: OTP alınamadı.";
+    }
+  } catch (error) {
+    console.error("Hata:", error);
+    otpMessage.value = "Sunucu ile iletişimde bir sorun var.";
+  }
 }
 </script>
 
