@@ -40,7 +40,19 @@ function goBackStep() {
 }
 
 function onFileChange(event) {
-  const newFiles = Array.from(event.target.files);
+  const newFiles = Array.from(event.target.files)
+  // .filter(file => {
+  //   const maxSize = 2 * 1024 * 1024 * 1024; // 2 GB
+  //   //const allowedTypes = ["image/png", "image/jpeg", "application/pdf"];
+  //   if (file.size > maxSize && file > 20) {
+  //     alert(`${file.name} boyutu sınırı aşıyor.`);
+  //     return false;
+  //   }
+  //   return true;
+  // }).map(file => ({
+  //   file,
+  //   uploadProgress: 0,
+  // }));
   selectedFiles.value = [...selectedFiles.value, ...newFiles];
 }
 
@@ -156,7 +168,7 @@ async function uploadFiles() {
 
       <div v-else-if="currentStep === 2">
         <!-- CS 2 Önizleme -->
-        <div class="border-2 border-gray-300 rounded-lg p-6 text-center h-64 overflow-y-auto">
+        <div class="border-2 border-gray-300 rounded-lg p-6 text-center h-72 overflow-y-auto pb-8">
           <ul>
             <li v-for="(file, index) in selectedFiles" :key="index" class="mb-4">
               <div class="flex items-center">
@@ -178,19 +190,23 @@ async function uploadFiles() {
             </li>
           </ul>
         </div>
+        <div class="relative">
+          <label class="px-2 py-1 border-2 border-purple-600 text-purple-600 rounded hover:bg-purple-600 hover:text-white cursor-pointer
+          absolute bottom-1 left-4 mb-1">
+          <input type="file" multiple hidden @change="onFileChange"/>
+          Upload More Files
+          </label>
+        </div>
         <div class="mt-4 text-xs text-gray-600 flex justify-between">
           <p>Accepted file types: All Types</p>
           <p>Max files: 20 | Max file size: 2GB</p>
         </div> 
         <div class="mt-4 flex justify-end space-x-3">
-          <label class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 cursor-pointer">
-          <input type="file" multiple hidden @change="onFileChange"/>
-          Upload More Files
-          </label>
           <button @click="goBackStep" class="px-4 py-2 text-gray-600 hover:text-gray-800">
             Geri
           </button>
-          <button @click="uploadFiles" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+          <button @click="uploadFiles" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          :disabled="selectedFiles.length === 0" :class="{'bg-gray-400': selectedFiles.length === 0}" >
             Gönder
           </button>
         </div>
