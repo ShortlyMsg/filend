@@ -7,7 +7,7 @@ import (
 	"filend/config"
 	"filend/models"
 	"filend/services"
-	"time"
+	"log"
 
 	"github.com/lib/pq"
 
@@ -35,11 +35,15 @@ func GenerateFileHash(file io.Reader) (string, error) {
 
 func UpdateFileTimeByHash(fileHash string) error {
 
-	err := config.DB.Model(&models.FileModel{}).
-		Joins("JOIN file_details ON file_details.file_model_id = file_models.file_model_id").
-		Where("file_details.file_hashes @> ?", pq.StringArray{fileHash}).
-		Update("updated_at", time.Now()).Error
-
+	query := `
+	UPDATE file_models
+	SET updated_at = NOW()
+	FROM file_details
+	WHERE file_details.file_model_id = file_models.file_model_id
+	AND file_details.file_hashes @> ? 
+	AND file_models.deleted_at IS NULL;
+`
+	err := config.DB.Exec(query, pq.StringArray{fileHash}).Error
 	return err
 }
 
@@ -90,18 +94,24 @@ func UploadFile(c *gin.Context) {
 			return
 		}
 
+		log.Printf("1 existingfile kontrol giriş %s", fileHash)
+
 		var existingFile models.FileDetails
 		err = config.DB.Where("file_details.file_hashes @> ? AND file_models.deleted_at IS NULL", pq.StringArray{fileHash}).
 			Joins("JOIN file_models ON file_details.file_model_id = file_models.file_model_id").
 			First(&existingFile).Error
+		log.Printf("2 Query sonuçları  %s: %v", fileHash, err)
 		if err == nil {
-			// Dosya zaten var, MinIO'ya yüklemiyoruz ama DB'ye kaydediyoruz
-			if err := UpdateFileTimeByHash(fileHash); err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "UpdatedAt güncellenemedi"})
-				return
-			}
-		} else {
+			log.Printf("3 if err==nil içi %s", fileHash)
+			// // Dosya zaten var, MinIO'ya yüklemiyoruz ama DB'ye kaydediyoruz
+			// if err := UpdateFileTimeByHash(fileHash); err != nil {
+			// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "UpdatedAt güncellenemedi"})
+			// 	return
+			// }
+			// log.Printf("4 oldu gibi")
 			// MinIO'ya hash ismiyle yükle
+		} else {
+			log.Printf("5 else minio %s, error: %v", fileHash, err)
 			uploadedFile.Seek(0, io.SeekStart)
 			_, err = config.MinioClient.PutObject(c, "filend", fileHash, uploadedFile, file.Size, minio.PutObjectOptions{
 				ContentType: file.Header.Get("Content-Type"),
@@ -257,6 +267,13 @@ func CheckFileHash(c *gin.Context) {
 
 		// Eğer dosya bulunursa false, bulunamazsa true
 		if err == nil && len(existingFiles) > 0 {
+			err := UpdateFileTimeByHash(fileHash)
+			if err != nil {
+				log.Printf("Hata: Dosya zaman güncellemesi başarısız: %v", err)
+			} else {
+				log.Printf("Zaman güncellemesi başarıyla yapıldı: %s", fileHash)
+			}
+			log.Printf("8")
 			fileStatus[fileHash] = false // Dosya mevcut
 		} else {
 			fileStatus[fileHash] = true // Dosya mevcut değil, yüklenebilir
