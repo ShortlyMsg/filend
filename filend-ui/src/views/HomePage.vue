@@ -17,38 +17,37 @@ const goToExternalSite = () => {
 
 <template>
   <div class="flex justify-center items-center h-screen">
-    <div class="grid grid-rows-4 items-center">
-      <button @click="goToExternalSite" class="hexagon bg-purple-500 text-white font-bold text-2xl focus:outline-none 
-      hover:bg-purple-700 hover:scale-90 active:scale-75 transition-all duration-200 mx-auto -mb-22">
-        Developer
-      </button>
-      <div class="flex justify-center space-x-1">
-        <button @click="goToUpload" class="hexagon text-white font-bold text-2xl focus:outline-none
-          hover:scale-90 active:scale-75 transition-all duration-200"
-          style="background: radial-gradient(circle, #3B82F6 0%, #000000 75%);">
-          Upload
-        </button>
-        <button @click="goToDownload" class="hexagon text-white font-bold text-2xl focus:outline-none 
-          hover:scale-90 active:scale-75 transition-all duration-200"
-          style="background: radial-gradient(circle, #70FF88 0%, #000000 75%);">
-          Download
-        </button>
+    <div class="bg-white rounded-lg shadow-lg p-6 max-w-xl w-full">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-2xl font-bold">Filend - File Send</h2>
+        <span class="flex items-center border-2 border-purple-400 rounded-full p-2 transition cursor-pointer" title="Developer">
+          <img @click="goToExternalSite" src="@/assets/developer.svg" alt="Kopyala" class="w-5 h-5" />
+        </span>
       </div>
-      <!-- <button @click="goToExternalSite" 
-        class="relative w-32 h-32 bg-red-500 text-white font-bold text-lg flex items-center justify-center 
-        hover:bg-red-700 hover:scale-90 active:scale-75 transition-all duration-200 mx-auto -mt-14" 
-        style="clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);">
-        MSG
-      </button> -->
+      <p class="text-sm text-gray-600 mb-2">Tek tıkla gönder, tek kodla al!</p>
+      <div class="border-2 border-gray-300 rounded-lg text-center h-64 overflow-y-auto flex">
+        
+        <!-- Sol kısım: Upload simgesi ve arka plan rengi beyaz -->
+        <div class="flex-1 flex justify-center items-center cursor-pointer bg-blue-50" @click="goToUpload">
+          <div class="flex flex-col items-center">
+            <img src="@/assets/upload.svg" alt="Upload" class="w-16 h-16" />
+            <span class="text-gray-600 text-xl font-bold">Upload</span>
+          </div>
+        </div>
+
+        <!-- Sağ kısım: Download simgesi ve arka plan rengi gri -->
+        <div class="flex-1 flex justify-center items-center cursor-pointer bg-green-50" @click="goToDownload">
+          <div class="flex flex-col items-center">
+            <img src="@/assets/download.svg" alt="Download" class="w-16 h-16" />
+            <span class="text-gray-600 text-xl font-bold">Download</span>
+          </div>
+        </div>
+        
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.hexagon {
-  position: relative;
-  width: 12rem;
-  height: 12rem;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-}
+
 </style>

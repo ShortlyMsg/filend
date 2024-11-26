@@ -3,7 +3,7 @@
 </script>
 
 <template>
-<nav class="top-0 w-full h-14 bg-[#defaea] shadow-inner flex items-center justify-between px-4 z-50">
+<nav class="top-0 w-full h-14 bg-gray-100 shadow-inner flex items-center justify-between px-4 z-50">
     <router-link to="/">
         <img src="@/assets/filend-logo.png" alt="Logo" class="h-10 ml-24" />
     </router-link>

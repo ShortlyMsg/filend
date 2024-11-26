@@ -66,14 +66,8 @@ const downloadFile = async (index) => {
 <template>
   <div class="flex justify-center items-center h-screen">
     <div class="bg-white rounded-lg shadow-lg p-6 max-w-xl w-full">
-      <div class="mb-4">
-        <input 
-          type="text" 
-          v-model="otp" 
-          class="border border-green-400 p-2 rounded"
-          placeholder="OTP kodunu girin"
-        />
-      </div>
+      <h2 class="text-2xl font-bold mb-4">Filend - File Send</h2>
+      <p class="text-sm text-gray-600 mb-2">Tek tıkla gönder, tek kodla al!</p>
       <div class="border-2 border-gray-300 rounded-lg p-6 text-center h-64 overflow-y-auto">
         <ul>
           <li v-for="(file, index) in files" :key="index" class="mb-4">
@@ -89,8 +83,17 @@ const downloadFile = async (index) => {
           </li>
         </ul>
       </div>
-      <div class="mt-4 flex justify-end space-x-3">
-        <button @click="fetchFiles" class="px-4 py-2 bg-green-400 text-white rounded hover:bg-blue-700">
+      
+      <div class="mt-4 flex justify-between space-x-3">
+        <div class="">
+        <input 
+          type="text" 
+          v-model="otp" 
+          class="border border-green-400 p-2 rounded"
+          placeholder="OTP kodunu girin"
+        />
+      </div>
+        <button @click="fetchFiles" class="px-4 py-0 bg-green-400 text-white rounded hover:bg-green-700">
         Listele
         </button>
       </div>

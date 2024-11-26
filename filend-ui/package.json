@@ -23,7 +23,9 @@
     "eslint": "^7.32.0",
     "eslint-plugin-vue": "^8.0.3",
     "postcss": "^8.4.47",
-    "tailwindcss": "^3.4.14"
+    "tailwindcss": "^3.4.14",
+    "vue-loader": "^17.4.2",
+    "webpack": "^5.96.1"
   },
   "eslintConfig": {
     "root": true,

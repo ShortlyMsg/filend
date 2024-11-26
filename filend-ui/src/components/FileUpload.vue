@@ -55,7 +55,6 @@ function onFileChange(event) {
   // }));
   selectedFiles.value = [...selectedFiles.value, ...newFiles];
 }
-
 function removeFile(index) {
   selectedFiles.value.splice(index, 1);
 }
@@ -115,11 +114,13 @@ async function uploadFiles() {
     const response = await axios.post("http://localhost:9091/upload", formData, {
       headers: { "Content-Type": "multipart/form-data" },
       onUploadProgress: progressEvent => {
-        console.log("Yüklendi:", progressEvent.loaded);
-        console.log("Toplam:", progressEvent.total);
-        selectedFiles.value.forEach(file => {
-          file.uploadProgress = Math.round(
-            (progressEvent.loaded / progressEvent.total) * 100);
+        const totalBytes = progressEvent.total || 0;
+        const uploadedBytes = progressEvent.loaded || 0;
+
+        selectedFiles.value.forEach((file) => {
+          const uploadProgress  = Math.round((uploadedBytes / totalBytes) * 100);
+          file.uploadProgress = uploadProgress;
+          console.log(`Dosya: ${file.name} - Yüzde: ${uploadProgress }%`);
         });
       },
     });
@@ -179,7 +180,7 @@ async function uploadFiles() {
                     <button @click="removeFile(index)" class="ml-auto font-extrabold text-red-500 hover:text-red-700">✕</button>
                   </div>
                   <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
-                    <div :style="{ width: `${(file.uploadProgress || 0)}%` }" class="bg-blue-600 h-2 rounded-full"></div>
+                    <div :style="{ width: `${file.uploadProgress || 0}%` }" class="bg-blue-600 h-2 rounded-full"></div>
                   </div>
                   <span class="text-xs text-left mt-1">
                     {{ file.uploadProgress ? `${(file.uploadProgress || 0).toFixed(2)} MB / ${(file.size / (1024 * 1024))
@@ -205,7 +206,7 @@ async function uploadFiles() {
           <button @click="goBackStep" class="px-4 py-2 text-gray-600 hover:text-gray-800">
             Geri
           </button>
-          <button @click="uploadFiles" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          <button @click="uploadFiles" class="px-4 py-2 bg-blue-600 text-white rounded "
           :disabled="selectedFiles.length === 0" :class="{'bg-gray-400': selectedFiles.length === 0}" >
             Gönder
           </button>
@@ -214,6 +215,9 @@ async function uploadFiles() {
 
       <div v-else-if="currentStep === 3">
         <!-- CS 3 OTP-->
+        <div v-if="copied" class="fixed top-16 right-8 bg-blue-500 text-white px-6 py-4 rounded shadow-md transition">
+          Kopyalandı!
+        </div>
         <div class="border-2 border-gray-300 rounded-lg p-24 text-center relative flex flex-col justify-between h-64">
           <div v-if="showOptions" class="absolute top-14 right-4 flex-col">
             <button @click="shareViaMail" class="flex items-center justify-center border-2 border-[#e2abab] rounded-full p-2 transition">
