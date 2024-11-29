@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import axios from 'axios';
 import FileIcon from '@/utils/FileIcon.vue';
 
-const currentStep = ref(1); // 1: Dosya Seçimi, 2: Önizleme, 3: OTP Gösterimi
+const currentStep = ref(2); // 1: Dosya Seçimi, 2: Önizleme, 3: OTP Gösterimi
 const selectedFiles = ref([]);
 const otpMessage = ref("");
 const copied = ref(false);
@@ -117,9 +117,9 @@ async function uploadFiles() {
         const totalBytes = progressEvent.total || 0;
         const uploadedBytes = progressEvent.loaded || 0;
 
-        selectedFiles.value.forEach((file) => {
-          const uploadProgress  = Math.round((uploadedBytes / totalBytes) * 100);
-          file.uploadProgress = uploadProgress;
+        selectedFiles.value.forEach((file, index) => {
+          const uploadProgress = Math.round((uploadedBytes / totalBytes) * 100);
+          selectedFiles.value[index].uploadProgress = uploadProgress;
           console.log(`Dosya: ${file.name} - Yüzde: ${uploadProgress }%`);
         });
       },
@@ -143,7 +143,7 @@ async function uploadFiles() {
     <div class="bg-white rounded-lg shadow-lg p-6 max-w-xl w-full">
       <h2 class="text-2xl font-bold mb-4">Filend - File Send</h2>
       <p class="text-sm text-gray-600 mb-2">Tek tıkla gönder, tek kodla al!</p>
-      <div v-if="currentStep === 1">
+      <div v-if="currentStep === 1 || selectedFiles.length === 0">
         <!-- CS 1 Upload -->
         <div class="border-2 border-dashed border-gray-300 rounded-lg p-24 text-center"
           @dragenter.prevent="dragEnter"
@@ -169,9 +169,9 @@ async function uploadFiles() {
 
       <div v-else-if="currentStep === 2">
         <!-- CS 2 Önizleme -->
-        <div class="border-2 border-gray-300 rounded-lg p-6 text-center h-72 overflow-y-auto pb-8">
-          <ul>
-            <li v-for="(file, index) in selectedFiles" :key="index" class="mb-4">
+        <div class="border-2 border-gray-300 rounded-lg p-6 text-center h-80 relative">
+          <div class="overflow-y-auto scrollbar-hidden h-60 p-2">
+            <div v-for="(file, index) in selectedFiles" :key="index" class="mb-4">
               <div class="flex items-center">
                 <FileIcon :fileName="file.name" class="32px"/>
                 <div class="flex flex-col ml-4 w-full">
@@ -188,16 +188,17 @@ async function uploadFiles() {
                   </span>
                 </div>
               </div>
-            </li>
-          </ul>
+            </div>
+          </div>
+          <div class="absolute bottom-2 left-2 flex">
+            <label class="px-2 py-1 border-2 border-purple-600 text-purple-600 rounded hover:bg-purple-600 hover:text-white cursor-pointer">
+            <input type="file" multiple hidden @change="onFileChange"/>
+            Upload More Files
+            </label>
+          </div>
         </div>
-        <div class="relative">
-          <label class="px-2 py-1 border-2 border-purple-600 text-purple-600 rounded hover:bg-purple-600 hover:text-white cursor-pointer
-          absolute bottom-1 left-4 mb-1">
-          <input type="file" multiple hidden @change="onFileChange"/>
-          Upload More Files
-          </label>
-        </div>
+
+
         <div class="mt-4 text-xs text-gray-600 flex justify-between">
           <p>Accepted file types: All Types</p>
           <p>Max files: 20 | Max file size: 2GB</p>
@@ -257,6 +258,14 @@ async function uploadFiles() {
 </template>
 
 <style scoped>
+
+.scrollbar-hidden {
+  scrollbar-width: none; /* Firefox için */
+  -ms-overflow-style: none; /* IE için */
+}
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none; /* Chrome ve Safari için */
+}
 .fixed-size {
   width: 656px;  
   height: 531px;  /*w 492px h 398px 1080p*/
