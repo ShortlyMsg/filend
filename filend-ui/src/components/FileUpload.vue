@@ -2,8 +2,9 @@
 import { ref } from 'vue';
 import axios from 'axios';
 import FileIcon from '@/utils/FileIcon.vue';
+import { API_ENDPOINTS } from '@/utils/api';
 
-const currentStep = ref(2); // 1: Dosya Seçimi, 2: Önizleme, 3: OTP Gösterimi
+const currentStep = ref(1); // 1: Dosya Seçimi, 2: Önizleme, 3: OTP Gösterimi
 const selectedFiles = ref([]);
 const otpMessage = ref("");
 const copied = ref(false);
@@ -49,10 +50,11 @@ function onFileChange(event) {
   //     return false;
   //   }
   //   return true;
-  // }).map(file => ({
-  //   file,
-  //   uploadProgress: 0,
-  // }));
+  // })
+  .map(file => ({
+    file,
+    uploadProgress: 0,
+  }));
   selectedFiles.value = [...selectedFiles.value, ...newFiles];
 }
 function removeFile(index) {
@@ -87,7 +89,7 @@ async function uploadFiles() {
   }
 
   // Hash kontrol isteği
-  const hashCheckResponse = await fetch("http://localhost:9091/checkFileHash", {
+  const hashCheckResponse = await fetch(API_ENDPOINTS.CHECK_FILE_HASH, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -111,7 +113,7 @@ async function uploadFiles() {
 
 
   try {
-    const response = await axios.post("http://localhost:9091/upload", formData, {
+    const response = await axios.post(API_ENDPOINTS.UPLOAD_FILES, formData, {
       headers: { "Content-Type": "multipart/form-data" },
       onUploadProgress: progressEvent => {
         const totalBytes = progressEvent.total || 0;

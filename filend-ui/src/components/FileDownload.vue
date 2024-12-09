@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import FileIcon from '@/utils/FileIcon.vue';
+import { API_ENDPOINTS } from '@/utils/api';
 
 const otp = ref('');
 const files = ref([]);
@@ -12,7 +13,7 @@ const fetchFiles = async () => {
   }
 
   try {
-    const response = await fetch('http://localhost:9091/getAllFiles', {
+    const response = await fetch(API_ENDPOINTS.GET_ALL_FILES, {
       method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -42,7 +43,7 @@ const downloadFile = async (index) => {
   if (!file) return;
 
     try {
-      const response = await fetch('http://localhost:9091/download', {
+      const response = await fetch(API_ENDPOINTS.DOWNLOAD_FILES, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
