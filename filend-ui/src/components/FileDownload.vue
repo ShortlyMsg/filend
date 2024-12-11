@@ -70,8 +70,10 @@ const downloadFile = async (index) => {
       <h2 class="text-2xl font-bold mb-4">Filend - File Send</h2>
       <p class="text-sm text-gray-600 mb-2">Tek tıkla gönder, tek kodla al!</p>
       <div class="border-2 border-gray-300 rounded-lg p-6 text-center h-64 overflow-y-auto relative">
-        <span v-if="files.length === 0" class="absolute inset-0 flex justify-center items-center text-green-500 text-2xl">Lütfen Tek Seferlik şifreyi aşağıya giriniz</span>
-        <img v-if="files.length === 0" src="@/assets/download.svg" alt="download" class="w-12 h-12  absolute bottom-4 left-4"/>
+        <div v-if="files.length === 0" class="absolute inset-0 flex flex-col items-center justify-center">
+          <img src="@/assets/download-file.png" alt="download" class="w-40 h-40"/>
+          <span class="text-green-500 text-lg font-extrabold mt-2">Lütfen Tek Seferlik şifreyi aşağıya giriniz</span>
+        </div>
         <div v-for="(file, index) in files" :key="index" class="mb-4">
           <div class="flex items-center">
             <FileIcon :fileName="file.name" class="32px"/>
@@ -90,7 +92,7 @@ const downloadFile = async (index) => {
         <input 
           type="text" 
           v-model="otp" 
-          class="border border-green-400 p-2 rounded"
+          class="border-2 border-green-400 p-2 rounded"
           placeholder="OTP kodunu girin"
         />
       </div>
