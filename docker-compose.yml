@@ -18,7 +18,7 @@ services:
     environment:
       POSTGRES_USER: $POSTGRES_USER
       POSTGRES_PASSWORD: $POSTGRES_PASSWORD
-      POSTGRES_DB: filend
+      POSTGRES_DB: $POSTGRES_DB
     ports:
       - "5432:5432"
     volumes:
@@ -33,3 +33,11 @@ services:
       - postgres
     env_file:
       - .env
+  
+  frontend:
+    build:
+      context: ./filend-ui
+    ports:
+      - "9071:9071"
+    depends_on:
+      - app

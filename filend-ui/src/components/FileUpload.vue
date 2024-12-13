@@ -42,6 +42,11 @@ function goBackStep() {
 
 function onFileChange(event) {
   const newFiles = Array.from(event.target.files)
+
+  if (selectedFiles.value.length + newFiles.length > 20) {
+    alert("Maksimum dosya limiti aşıldı.");
+    return;
+  }
   // .filter(file => {
   //   const maxSize = 2 * 1024 * 1024 * 1024; // 2 GB
   //   //const allowedTypes = ["image/png", "image/jpeg", "application/pdf"];
@@ -51,10 +56,10 @@ function onFileChange(event) {
   //   }
   //   return true;
   // })
-  .map(file => ({
-    file,
-    uploadProgress: 0,
-  }));
+  // .map(file => ({
+  //   file,
+  //   uploadProgress: 0,
+  // }));
   selectedFiles.value = [...selectedFiles.value, ...newFiles];
 }
 function removeFile(index) {
@@ -123,6 +128,7 @@ async function uploadFiles() {
           const uploadProgress = Math.round((uploadedBytes / totalBytes) * 100);
           selectedFiles.value[index].uploadProgress = uploadProgress;
           console.log(`Dosya: ${file.name} - Yüzde: ${uploadProgress }%`);
+          console.log(JSON.stringify(selectedFiles.value));
         });
       },
     });
@@ -184,6 +190,7 @@ async function uploadFiles() {
                   <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
                     <div :style="{ width: `${file.uploadProgress || 0}%` }" class="bg-blue-600 h-2 rounded-full"></div>
                   </div>
+                  <span>{{ file.uploadProgress || '0' }}%</span>
                   <span class="text-xs text-left mt-1">
                     {{ file.uploadProgress ? `${(file.uploadProgress || 0).toFixed(2)} MB / ${(file.size / (1024 * 1024))
                     .toFixed(2)} MB` : `0.00 MB / ${(file.size / (1024 * 1024)).toFixed(2)} MB` }}
