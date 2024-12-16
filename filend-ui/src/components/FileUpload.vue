@@ -42,24 +42,19 @@ function goBackStep() {
 
 function onFileChange(event) {
   const newFiles = Array.from(event.target.files)
+  const maxFileLimit = 20;
+  const maxTotalSize = 2 * 1024 * 1024 * 1024; // 2GB
 
-  if (selectedFiles.value.length + newFiles.length > 20) {
+  if (selectedFiles.value.length + newFiles.length > maxFileLimit) {
     alert("Maksimum dosya limiti aşıldı.");
     return;
   }
-  // .filter(file => {
-  //   const maxSize = 2 * 1024 * 1024 * 1024; // 2 GB
-  //   //const allowedTypes = ["image/png", "image/jpeg", "application/pdf"];
-  //   if (file.size > maxSize && file > 20) {
-  //     alert(`${file.name} boyutu sınırı aşıyor.`);
-  //     return false;
-  //   }
-  //   return true;
-  // })
-  // .map(file => ({
-  //   file,
-  //   uploadProgress: 0,
-  // }));
+  const totalSize = selectedFiles.value.reduce((acc, file) => acc + file.size, 0) + newFiles.reduce((acc, file) => acc + file.size, 0);
+  if (totalSize > maxTotalSize) {
+    alert("Toplam dosya boyutu 2 GB'ı geçemez.");
+    return;
+  }
+
   selectedFiles.value = [...selectedFiles.value, ...newFiles];
 }
 function removeFile(index) {
@@ -128,7 +123,7 @@ async function uploadFiles() {
           const uploadProgress = Math.round((uploadedBytes / totalBytes) * 100);
           selectedFiles.value[index].uploadProgress = uploadProgress;
           console.log(`Dosya: ${file.name} - Yüzde: ${uploadProgress }%`);
-          console.log(JSON.stringify(selectedFiles.value));
+          console.log(JSON.stringify(selectedFiles.value)); //  silinecek 
         });
       },
     });
@@ -190,7 +185,7 @@ async function uploadFiles() {
                   <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
                     <div :style="{ width: `${file.uploadProgress || 0}%` }" class="bg-blue-600 h-2 rounded-full"></div>
                   </div>
-                  <span>{{ file.uploadProgress || '0' }}%</span>
+                  <span>{{ file.uploadProgress || '0' }}%</span> <!-- silinecek -->
                   <span class="text-xs text-left mt-1">
                     {{ file.uploadProgress ? `${(file.uploadProgress || 0).toFixed(2)} MB / ${(file.size / (1024 * 1024))
                     .toFixed(2)} MB` : `0.00 MB / ${(file.size / (1024 * 1024)).toFixed(2)} MB` }}
