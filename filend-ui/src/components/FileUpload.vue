@@ -6,6 +6,7 @@ import { API_ENDPOINTS } from '@/utils/api';
 
 const currentStep = ref(1); // 1: Dosya Seçimi, 2: Önizleme, 3: OTP Gösterimi
 const selectedFiles = ref([]);
+const percentage = ref({});
 const otpMessage = ref("");
 const copied = ref(false);
 const showOptions = ref(false);
@@ -18,7 +19,7 @@ function copyToClipboard(text) {
     }, 2000);
   });
 }
-function showShareOptions(){
+function showShareOptions() {
   showOptions.value = !showOptions.value;
 }
 function shareViaMail() {
@@ -40,23 +41,6 @@ function goBackStep() {
   }
 }
 
-function onFileChange(event) {
-  const newFiles = Array.from(event.target.files)
-  const maxFileLimit = 20;
-  const maxTotalSize = 2 * 1024 * 1024 * 1024; // 2GB
-
-  if (selectedFiles.value.length + newFiles.length > maxFileLimit) {
-    alert("Maksimum dosya limiti aşıldı.");
-    return;
-  }
-  const totalSize = selectedFiles.value.reduce((acc, file) => acc + file.size, 0) + newFiles.reduce((acc, file) => acc + file.size, 0);
-  if (totalSize > maxTotalSize) {
-    alert("Toplam dosya boyutu 2 GB'ı geçemez.");
-    return;
-  }
-
-  selectedFiles.value = [...selectedFiles.value, ...newFiles];
-}
 function removeFile(index) {
   selectedFiles.value.splice(index, 1);
 }
@@ -69,9 +53,48 @@ async function calculateSHA256(file) {
   return hashHex;
 }
 
+function validateFiles(files, selectedFiles) {
+  const maxFileLimit = 20;
+  const maxTotalSize = 2 * 1024 * 1024 * 1024; // 2GB
+
+  const filesArray = Array.from(files);
+
+  if (selectedFiles.length + filesArray.length > maxFileLimit) {
+    return "Maksimum dosya limiti aşıldı.";
+  }
+
+  const totalSize = selectedFiles.reduce((acc, file) => acc + file.size, 0)
+    + files.reduce((acc, file) => acc + file.size, 0);
+  if (totalSize > maxTotalSize) {
+    return "Toplam dosya boyutu 2 GB'ı geçemez.";
+  }
+
+  return null; // Geçerli dosyalar
+}
+
+function onFileChange(event) {
+  const newFiles = Array.from(event.target.files)
+
+  const errorMessage = validateFiles(newFiles, selectedFiles.value);
+  if (errorMessage) {
+    alert(errorMessage);
+    return;
+  }
+
+  selectedFiles.value = [...selectedFiles.value, ...newFiles];
+}
+
 function handleFileUpload(event) {
   const files = event.target.files;
-  selectedFiles.value = Array.from(files);
+  const newFiles = Array.from(files);
+
+  const errorMessage = validateFiles(newFiles , selectedFiles.value); 
+  if (errorMessage) {
+    alert(errorMessage);
+    return;
+  }
+
+  selectedFiles.value = [...selectedFiles.value, ...newFiles];
   currentStep.value = 2; // Dosya önizleme adımına geç
 }
 
@@ -121,9 +144,17 @@ async function uploadFiles() {
 
         selectedFiles.value.forEach((file, index) => {
           const uploadProgress = Math.round((uploadedBytes / totalBytes) * 100);
-          selectedFiles.value[index].uploadProgress = uploadProgress;
-          console.log(`Dosya: ${file.name} - Yüzde: ${uploadProgress }%`);
-          console.log(JSON.stringify(selectedFiles.value)); //  silinecek 
+          const uploadedMB = (uploadedBytes / (1024 * 1024)).toFixed(2);
+          const totalMB = (file.size / (1024 * 1024)).toFixed(2);
+
+          if (!percentage.value[index]) {
+            percentage.value[index] = {};
+          }
+          percentage.value[index].uploadProgress = uploadProgress;
+          percentage.value[index].uploadedMB = uploadedMB; // Yüklenmiş MB
+          percentage.value[index].totalMB = totalMB; // Toplam MB
+
+          console.log(`Dosya: ${file.name} - Yüzde: ${uploadProgress}%`);
         });
       },
     });
@@ -148,18 +179,12 @@ async function uploadFiles() {
       <p class="text-sm text-gray-600 mb-2">Tek tıkla gönder, tek kodla al!</p>
       <div v-if="currentStep === 1 || selectedFiles.length === 0">
         <!-- CS 1 Upload -->
-        <div class="border-2 border-dashed border-gray-300 rounded-lg p-24 text-center"
-          @dragenter.prevent="dragEnter"
-          @dragover.prevent="dragOver"
-          @dragleave.prevent="dragLeave"
-          @drop.prevent="handleDrop"
-        >
+        <div class="border-2 border-dashed border-gray-300 rounded-lg p-24 text-center" @dragenter.prevent="dragEnter"
+          @dragover.prevent="dragOver" @dragleave.prevent="dragLeave" @drop.prevent="handleDrop">
           <p class="text-gray-600">Dosyayı Buraya Sürükle Bırak</p>
           <p class="text-gray-600">Yada</p>
-          <label
-            for="file-upload"
-            class="cursor-pointer text-blue-600 border border-blue-600 rounded-md px-4 py-2 inline-block hover:bg-blue-600 hover:text-white transition"
-          >
+          <label for="file-upload"
+            class="cursor-pointer text-blue-600 border border-blue-600 rounded-md px-4 py-2 inline-block hover:bg-blue-600 hover:text-white transition">
             Dosya Seç
           </label>
           <input id="file-upload" type="file" class="hidden" @change="handleFileUpload" multiple />
@@ -176,28 +201,34 @@ async function uploadFiles() {
           <div class="overflow-y-auto scrollbar-hidden h-60 p-2">
             <div v-for="(file, index) in selectedFiles" :key="index" class="mb-4">
               <div class="flex items-center">
-                <FileIcon :fileName="file.name" class="32px"/>
+                <FileIcon :fileName="file.name" class="32px" />
                 <div class="flex flex-col ml-4 w-full">
                   <div class="flex items-center">
                     <span class="text-sm">{{ file.name }}</span>
-                    <button @click="removeFile(index)" class="ml-auto font-extrabold text-red-500 hover:text-red-700">✕</button>
+                    <button @click="removeFile(index)"
+                      class="ml-auto font-extrabold text-red-500 hover:text-red-700">✕</button>
                   </div>
                   <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
-                    <div :style="{ width: `${file.uploadProgress || 0}%` }" class="bg-blue-600 h-2 rounded-full"></div>
+                    <div :style="{ width: `${percentage[index]?.uploadProgress || 0}%` }"
+                      class="bg-blue-600 h-2 rounded-full"></div>
                   </div>
-                  <span>{{ file.uploadProgress || '0' }}%</span> <!-- silinecek -->
                   <span class="text-xs text-left mt-1">
-                    {{ file.uploadProgress ? `${(file.uploadProgress || 0).toFixed(2)} MB / ${(file.size / (1024 * 1024))
-                    .toFixed(2)} MB` : `0.00 MB / ${(file.size / (1024 * 1024)).toFixed(2)} MB` }}
+                    {{
+                      percentage[index]?.uploadProgress
+                        ? `${percentage[index]?.uploadedMB || "0.00"} MB / ${percentage[index]?.totalMB || "0.00"
+                        } MB`
+                        : `0.00 MB / ${(file.size / (1024 * 1024)).toFixed(2)} MB`
+                    }}
                   </span>
                 </div>
               </div>
             </div>
           </div>
           <div class="absolute bottom-2 left-2 flex">
-            <label class="px-2 py-1 border-2 border-purple-600 text-purple-600 rounded hover:bg-purple-600 hover:text-white cursor-pointer">
-            <input type="file" multiple hidden @change="onFileChange"/>
-            Upload More Files
+            <label
+              class="px-2 py-1 border-2 border-purple-600 text-purple-600 rounded hover:bg-purple-600 hover:text-white cursor-pointer">
+              <input type="file" multiple hidden @change="onFileChange" />
+              Upload More Files
             </label>
           </div>
         </div>
@@ -206,13 +237,13 @@ async function uploadFiles() {
         <div class="mt-4 text-xs text-gray-600 flex justify-between">
           <p>Accepted file types: All Types</p>
           <p>Max files: 20 | Max file size: 2GB</p>
-        </div> 
+        </div>
         <div class="mt-4 flex justify-end space-x-3">
           <button @click="goBackStep" class="px-4 py-2 text-gray-600 hover:text-gray-800">
             Geri
           </button>
           <button @click="uploadFiles" class="px-4 py-2 bg-blue-600 text-white rounded "
-          :disabled="selectedFiles.length === 0" :class="{'bg-gray-400': selectedFiles.length === 0}" >
+            :disabled="selectedFiles.length === 0" :class="{ 'bg-gray-400': selectedFiles.length === 0 }">
             Gönder
           </button>
         </div>
@@ -225,13 +256,16 @@ async function uploadFiles() {
         </div>
         <div class="border-2 border-gray-300 rounded-lg p-24 text-center relative flex flex-col justify-between h-64">
           <div v-if="showOptions" class="absolute top-14 right-4 flex-col">
-            <button @click="shareViaMail" class="flex items-center justify-center border-2 border-[#e2abab] rounded-full p-2 transition">
+            <button @click="shareViaMail"
+              class="flex items-center justify-center border-2 border-[#e2abab] rounded-full p-2 transition">
               <img src="@/assets/mail-icon.svg" alt="Mail" class="w-5 h-5" />
             </button>
-            <button @click="shareViaWhatsapp" class="flex items-center justify-center border-2 border-[#e2abab] rounded-full p-2 transition">
+            <button @click="shareViaWhatsapp"
+              class="flex items-center justify-center border-2 border-[#e2abab] rounded-full p-2 transition">
               <img src="@/assets/whatsapp-icon.svg" alt="WhatsApp" class="w-5 h-5" />
             </button>
-            <button @click="shareViaTelegram" class="flex items-center justify-center border-2 border-[#e2abab] rounded-full p-2 transition">
+            <button @click="shareViaTelegram"
+              class="flex items-center justify-center border-2 border-[#e2abab] rounded-full p-2 transition">
               <img src="@/assets/telegram-icon.svg" alt="WhatsApp" class="w-5 h-5" />
             </button>
           </div>
@@ -246,7 +280,7 @@ async function uploadFiles() {
             <button @click="copyToClipboard(otpMessage)" class="absolute top-4 right-16 flex items-center">
               <span class="flex items-center border-2 border-gray-300 rounded-full p-2 transition">
                 <img v-if="!copied" src="@/assets/copy-icon.svg" alt="Kopyala" class="w-5 h-5" />
-                <img v-else src="@/assets/ok.svg" class="w-5 h-5">  
+                <img v-else src="@/assets/ok.svg" class="w-5 h-5">
               </span>
             </button>
           </div>
@@ -262,20 +296,27 @@ async function uploadFiles() {
 </template>
 
 <style scoped>
-
 .scrollbar-hidden {
-  scrollbar-width: none; /* Firefox için */
-  -ms-overflow-style: none; /* IE için */
+  scrollbar-width: none;
+  /* Firefox için */
+  -ms-overflow-style: none;
+  /* IE için */
 }
+
 .scrollbar-hidden::-webkit-scrollbar {
-  display: none; /* Chrome ve Safari için */
+  display: none;
+  /* Chrome ve Safari için */
 }
+
 .fixed-size {
-  width: 656px;  
-  height: 531px;  /*w 492px h 398px 1080p*/
+  width: 656px;
+  height: 531px;
+  /*w 492px h 398px 1080p*/
 }
+
 .fixed-size-border2 {
   width: 600px;
-  height: 319px;  /*w 450px h 239px 1080p*/
+  height: 319px;
+  /*w 450px h 239px 1080p*/
 }
 </style>
