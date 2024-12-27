@@ -5,6 +5,7 @@ export const API_ENDPOINTS = {
   UPLOAD_FILES: `${BASE_URL}/upload`,
   GET_ALL_FILES: `${BASE_URL}/getAllFiles`,
   DOWNLOAD_FILES: `${BASE_URL}/download`,
+  GENERATE_OTP: `${BASE_URL}/generateOtp`
 };
 
 export function setBaseUrl(newBaseUrl) {

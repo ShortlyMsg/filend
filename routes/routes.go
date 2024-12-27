@@ -15,6 +15,7 @@ func SetupRouter() *gin.Engine {
 	router.POST("/download", controllers.DownloadFile)
 	router.POST("/getAllFiles", controllers.GetAllFiles)
 	router.POST("/checkFileHash", controllers.CheckFileHash)
+	router.POST("/generateOtp", controllers.GenerateOTP)
 
 	return router
 }

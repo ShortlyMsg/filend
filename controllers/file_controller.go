@@ -33,6 +33,11 @@ func GenerateFileHash(file io.Reader) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
+func GenerateOTP(c *gin.Context) {
+	otp := services.GenerateOneTimePassword()
+	c.JSON(http.StatusOK, gin.H{"otp": otp})
+}
+
 func UpdateFileTimeByHash(fileHash string) error {
 
 	query := `
@@ -56,7 +61,7 @@ func UploadFile(c *gin.Context) {
 	}
 
 	uploadedFiles := form.File["files"] // Formdan dosyaları al
-	otp := services.GenerateOneTimePassword()
+	otp := c.PostForm("otp")
 	// userSecurityCode := c.PostForm("userSecurityCode")
 
 	// if !validateSecurityCode(userSecurityCode) {
