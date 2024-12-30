@@ -104,6 +104,33 @@ function handleDrop(event) {
 }
 
 async function uploadFiles() {
+
+  let otp;
+  try {
+    const otpResponse = await fetch(API_ENDPOINTS.GENERATE_OTP, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!otpResponse.ok) {
+      throw new Error("OTP oluşturulamadı.");
+    }
+
+    const otpData = await otpResponse.json();
+    otp = otpData.otp;
+
+    if (!otp) {
+      otpMessage.value = "OTP alınamadı.";
+      return;
+    }
+  } catch (error) {
+    console.error("OTP alma hatası:", error);
+    otpMessage.value = "OTP almakta sorun oluştu.";
+    return;
+  }
+  
   // Dosyaları yüklemeye başla
   const fileHashes = [];
   for (const file of selectedFiles.value) {
@@ -161,7 +188,7 @@ async function uploadFiles() {
 
     if (response.data.otp) {
       otpMessage.value = response.data.otp;
-      currentStep.value = 3; // OTP gösterim adımına geç
+      //currentStep.value = 3; // OTP gösterim adımına geç
     } else {
       otpMessage.value = "Hata: OTP alınamadı.";
     }
@@ -175,9 +202,10 @@ async function uploadFiles() {
 <template>
   <div class="flex justify-center items-center h-screen">
     <div class="bg-white rounded-lg shadow-lg p-6 max-w-xl w-full">
-      <h2 class="text-2xl font-bold mb-4">Filend - File Send</h2>
-      <p class="text-sm text-gray-600 mb-2">Tek tıkla gönder, tek kodla al!</p>
-      <div v-if="currentStep === 1 || selectedFiles.length === 0">
+
+      <div v-if="currentStep === 1 "> <!--  || selectedFiles.length === 0 -->
+        <h2 class="text-2xl font-bold mb-4">Filend - File Send</h2>
+        <p class="text-sm text-gray-600 mb-2">Tek tıkla gönder, tek kodla al!</p>
         <!-- CS 1 Upload -->
         <div class="border-2 border-dashed border-gray-300 rounded-lg p-24 text-center" @dragenter.prevent="dragEnter"
           @dragover.prevent="dragOver" @dragleave.prevent="dragLeave" @drop.prevent="handleDrop">
@@ -195,8 +223,48 @@ async function uploadFiles() {
         </div>
       </div>
 
-      <div v-else-if="currentStep === 2">
+      <div class="relative" v-else-if="currentStep === 2">
         <!-- CS 2 Önizleme -->
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-2xl font-bold">Filend - File Send</h2>
+          <p id="otpMessage" class="flex items-center justify-end border-2 border-dashed px-1
+          border-purple-400 rounded text-3xl text-green-600 font-extrabold">{{ otpMessage }}</p>
+        </div>
+
+        <!-- Kopyalanan Bildirimi -->
+        <div v-if="copied" class="fixed top-16 right-8 bg-blue-500 text-white px-6 py-4 rounded shadow-md transition">
+          Kopyalandı!
+        </div>
+
+        <!-- Paylaş Butonları -->
+        <div class="flex items-center mb-1">
+          <p class="text-sm text-gray-600 mb-2">Tek tıkla gönder, tek kodla al!</p>
+          
+          <button @click="copyToClipboard(otpMessage)" class="ml-auto flex items-center border-2 border-gray-300 rounded-full p-2 transition">
+            <img v-if="!copied" src="@/assets/copy-icon.svg" alt="Kopyala" class="w-5 h-5" />
+            <img v-else src="@/assets/ok.svg" class="w-5 h-5">
+          </button>
+
+          <button @click="showShareOptions(otpMessage)" class="flex items-center border-2 border-gray-300 rounded-full p-2 transition">
+            <img src="@/assets/share-icon.svg" alt="Paylaş" class="w-5 h-5" />
+          </button>
+
+          <div v-if="showOptions" class="absolute bg-white right-0 top-22 flex-col space-y-1 rounded-lg p-2 shadow-lg z-10">
+            <button @click="shareViaMail"
+              class="flex items-center justify-center border-2 border-[#e2abab] rounded-full p-2 transition">
+              <img src="@/assets/mail-icon.svg" alt="Mail" class="w-5 h-5" />
+            </button>
+            <button @click="shareViaWhatsapp"
+              class="flex items-center justify-center border-2 border-[#e2abab] rounded-full p-2 transition">
+              <img src="@/assets/whatsapp-icon.svg" alt="WhatsApp" class="w-5 h-5" />
+            </button>
+            <button @click="shareViaTelegram"
+              class="flex items-center justify-center border-2 border-[#e2abab] rounded-full p-2 transition">
+              <img src="@/assets/telegram-icon.svg" alt="WhatsApp" class="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
         <div class="border-2 border-gray-300 rounded-lg p-6 text-center h-80 relative">
           <div class="overflow-y-auto scrollbar-hidden h-60 p-2">
             <div v-for="(file, index) in selectedFiles" :key="index" class="mb-4">
@@ -249,48 +317,6 @@ async function uploadFiles() {
         </div>
       </div>
 
-      <div v-else-if="currentStep === 3">
-        <!-- CS 3 OTP-->
-        <div v-if="copied" class="fixed top-16 right-8 bg-blue-500 text-white px-6 py-4 rounded shadow-md transition">
-          Kopyalandı!
-        </div>
-        <div class="border-2 border-gray-300 rounded-lg p-24 text-center relative flex flex-col justify-between h-64">
-          <div v-if="showOptions" class="absolute top-14 right-4 flex-col">
-            <button @click="shareViaMail"
-              class="flex items-center justify-center border-2 border-[#e2abab] rounded-full p-2 transition">
-              <img src="@/assets/mail-icon.svg" alt="Mail" class="w-5 h-5" />
-            </button>
-            <button @click="shareViaWhatsapp"
-              class="flex items-center justify-center border-2 border-[#e2abab] rounded-full p-2 transition">
-              <img src="@/assets/whatsapp-icon.svg" alt="WhatsApp" class="w-5 h-5" />
-            </button>
-            <button @click="shareViaTelegram"
-              class="flex items-center justify-center border-2 border-[#e2abab] rounded-full p-2 transition">
-              <img src="@/assets/telegram-icon.svg" alt="WhatsApp" class="w-5 h-5" />
-            </button>
-          </div>
-          <div>
-            <p id="otpMessage" class="text-6xl text-green-600 font-extrabold">{{ otpMessage }}</p>
-            <button @click="showShareOptions(otpMessage)" class="absolute top-4 right-4 flex items-center">
-              <span class="flex items-center border-2 border-gray-300 rounded-full p-2 transition">
-                <img src="@/assets/share-icon.svg" alt="Paylaş" class="w-5 h-5" />
-              </span>
-            </button>
-
-            <button @click="copyToClipboard(otpMessage)" class="absolute top-4 right-16 flex items-center">
-              <span class="flex items-center border-2 border-gray-300 rounded-full p-2 transition">
-                <img v-if="!copied" src="@/assets/copy-icon.svg" alt="Kopyala" class="w-5 h-5" />
-                <img v-else src="@/assets/ok.svg" class="w-5 h-5">
-              </span>
-            </button>
-          </div>
-          <p class="mt-12">Yukardaki kodu alıcıya gönderiniz.</p>
-        </div>
-        <div class="mt-4 text-xs text-gray-600 flex justify-between">
-          <p>Accepted file types: All Types</p>
-          <p>Max files: 20 | Max file size: 2GB</p>
-        </div>
-      </div>
     </div>
   </div>
 </template>

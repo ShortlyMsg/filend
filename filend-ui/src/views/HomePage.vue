@@ -27,7 +27,7 @@ const goToExternalSite = () => {
       <p class="text-sm text-gray-600 mb-2">Tek tıkla gönder, tek kodla al!</p>
       <div class="border-2 border-gray-300 rounded-lg text-center h-64 overflow-y-auto flex">
         
-        <!-- Sol kısım: Upload simgesi ve arka plan rengi beyaz -->
+        <!-- Sol kısım: Upload simgesi -->
         <div class="flex-1 flex justify-center items-center cursor-pointer bg-blue-50" @click="goToUpload">
           <div class="flex flex-col items-center">
             <img src="@/assets/upload.svg" alt="Upload" class="w-16 h-16" />
@@ -35,7 +35,7 @@ const goToExternalSite = () => {
           </div>
         </div>
 
-        <!-- Sağ kısım: Download simgesi ve arka plan rengi gri -->
+        <!-- Sağ kısım: Download simgesi -->
         <div class="flex-1 flex justify-center items-center cursor-pointer bg-green-50" @click="goToDownload">
           <div class="flex flex-col items-center">
             <img src="@/assets/download.svg" alt="Download" class="w-16 h-16" />
