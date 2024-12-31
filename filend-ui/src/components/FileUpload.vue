@@ -82,6 +82,7 @@ function onFileChange(event) {
   }
 
   selectedFiles.value = [...selectedFiles.value, ...newFiles];
+  uploadFiles();
 }
 
 function handleFileUpload(event) {
@@ -96,39 +97,51 @@ function handleFileUpload(event) {
 
   selectedFiles.value = [...selectedFiles.value, ...newFiles];
   currentStep.value = 2; // Dosya önizleme adımına geç
+  uploadFiles();
 }
 
 function handleDrop(event) {
   const files = event.dataTransfer.files;
+  const newFiles = Array.from(files);
+
+  const errorMessage = validateFiles(newFiles , selectedFiles.value); 
+  if (errorMessage) {
+    alert(errorMessage);
+    return;
+  }
+
   handleFileUpload({ target: { files } });
 }
 
 async function uploadFiles() {
 
-  let otp;
-  try {
-    const otpResponse = await fetch(API_ENDPOINTS.GENERATE_OTP, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+  let otp = otpMessage.value;
 
-    if (!otpResponse.ok) {
-      throw new Error("OTP oluşturulamadı.");
-    }
+  if (!otp) {
+    try {
+      const otpResponse = await fetch(API_ENDPOINTS.GENERATE_OTP, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
-    const otpData = await otpResponse.json();
-    otp = otpData.otp;
+      if (!otpResponse.ok) throw new Error("OTP oluşturulamadı.");
 
-    if (!otp) {
-      otpMessage.value = "OTP alınamadı.";
+      const otpData = await otpResponse.json();
+      otp = otpData.otp;
+
+      if (!otp) {
+        otpMessage.value = "OTP alınamadı.";
+        return;
+      }
+
+      otpMessage.value = otp; // OTP'yi göster
+    } catch (error) {
+      console.error("OTP alma hatası:", error);
+      otpMessage.value = "OTP almakta sorun oluştu.";
       return;
     }
-  } catch (error) {
-    console.error("OTP alma hatası:", error);
-    otpMessage.value = "OTP almakta sorun oluştu.";
-    return;
   }
   
   // Dosyaları yüklemeye başla
@@ -163,7 +176,7 @@ async function uploadFiles() {
 
 
   try {
-    const response = await axios.post(API_ENDPOINTS.UPLOAD_FILES, formData, {
+    const response = await axios.post(`${API_ENDPOINTS.UPLOAD_FILES}?otp=${otp}`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
       onUploadProgress: progressEvent => {
         const totalBytes = progressEvent.total || 0;
@@ -186,11 +199,10 @@ async function uploadFiles() {
       },
     });
 
-    if (response.data.otp) {
-      otpMessage.value = response.data.otp;
-      //currentStep.value = 3; // OTP gösterim adımına geç
+    if (response.data.success) {
+      console.log("Dosyalar başarıyla yüklendi.");
     } else {
-      otpMessage.value = "Hata: OTP alınamadı.";
+      console.error("Dosya yükleme hatası:", response.data.message);
     }
   } catch (error) {
     console.error("Hata:", error);
@@ -225,9 +237,9 @@ async function uploadFiles() {
 
       <div class="relative" v-else-if="currentStep === 2">
         <!-- CS 2 Önizleme -->
-        <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center justify-between mb-1">
           <h2 class="text-2xl font-bold">Filend - File Send</h2>
-          <p id="otpMessage" class="flex items-center justify-end border-2 border-dashed px-1
+          <p id="otpMessage" class="flex items-center justify-end border-2 border-dotted px-1
           border-purple-400 rounded text-3xl text-green-600 font-extrabold">{{ otpMessage }}</p>
         </div>
 
@@ -249,7 +261,7 @@ async function uploadFiles() {
             <img src="@/assets/share-icon.svg" alt="Paylaş" class="w-5 h-5" />
           </button>
 
-          <div v-if="showOptions" class="absolute bg-white right-0 top-22 flex-col space-y-1 rounded-lg p-2 shadow-lg z-10">
+          <div v-if="showOptions" class="absolute bg-white right-0 top-22 flex-col space-y-1 rounded-lg p-0 shadow-lg z-10">
             <button @click="shareViaMail"
               class="flex items-center justify-center border-2 border-[#e2abab] rounded-full p-2 transition">
               <img src="@/assets/mail-icon.svg" alt="Mail" class="w-5 h-5" />
