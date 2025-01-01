@@ -139,7 +139,7 @@ async function uploadFiles() {
       otpMessage.value = otp; // OTP'yi göster
     } catch (error) {
       console.error("OTP alma hatası:", error);
-      otpMessage.value = "OTP almakta sorun oluştu.";
+      otpMessage.value = "OTP catch err";
       return;
     }
   }

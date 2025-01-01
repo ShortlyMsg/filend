@@ -61,7 +61,7 @@ func UploadFile(c *gin.Context) {
 	}
 
 	uploadedFiles := form.File["files"] // Formdan dosyaları al
-	otp := c.PostForm("otp")
+	otp := c.Query("otp")
 	// userSecurityCode := c.PostForm("userSecurityCode")
 
 	// if !validateSecurityCode(userSecurityCode) {
