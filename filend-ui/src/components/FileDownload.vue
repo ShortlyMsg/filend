@@ -90,8 +90,8 @@ const downloadFile = async (index) => {
 
       <div class="mt-4 flex justify-between space-x-3">
         <div class="">
-          <input type="text" v-model="otp" class="border-2 border-green-400 p-2 rounded"
-            placeholder="OTP kodunu girin" />
+          <input type="text" v-model="otp" class="border-2 border-dashed border-gray-400 p-2 rounded"
+            placeholder="OTP kodunu buraya girin" />
         </div>
         <button @click="fetchFiles" class="px-4 py-0 bg-green-400 text-white rounded hover:bg-green-700">
           Listele

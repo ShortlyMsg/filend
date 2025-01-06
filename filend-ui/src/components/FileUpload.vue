@@ -89,7 +89,7 @@ function handleFileUpload(event) {
   const files = event.target.files;
   const newFiles = Array.from(files);
 
-  const errorMessage = validateFiles(newFiles , selectedFiles.value); 
+  const errorMessage = validateFiles(newFiles, selectedFiles.value);
   if (errorMessage) {
     alert(errorMessage);
     return;
@@ -104,7 +104,7 @@ function handleDrop(event) {
   const files = event.dataTransfer.files;
   const newFiles = Array.from(files);
 
-  const errorMessage = validateFiles(newFiles , selectedFiles.value); 
+  const errorMessage = validateFiles(newFiles, selectedFiles.value);
   if (errorMessage) {
     alert(errorMessage);
     return;
@@ -143,7 +143,7 @@ async function uploadFiles() {
       return;
     }
   }
-  
+
   // Dosyaları yüklemeye başla
   const fileHashes = [];
   for (const file of selectedFiles.value) {
@@ -174,7 +174,6 @@ async function uploadFiles() {
     }
   });
 
-
   try {
     const response = await axios.post(`${API_ENDPOINTS.UPLOAD_FILES}?otp=${otp}`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
@@ -187,9 +186,7 @@ async function uploadFiles() {
           const uploadedMB = (uploadedBytes / (1024 * 1024)).toFixed(2);
           const totalMB = (file.size / (1024 * 1024)).toFixed(2);
 
-          if (!percentage.value[index]) {
-            percentage.value[index] = {};
-          }
+          percentage.value[index] = {};
           percentage.value[index].uploadProgress = uploadProgress;
           percentage.value[index].uploadedMB = uploadedMB; // Yüklenmiş MB
           percentage.value[index].totalMB = totalMB; // Toplam MB
@@ -215,7 +212,7 @@ async function uploadFiles() {
   <div class="flex justify-center items-center h-screen">
     <div class="bg-white rounded-lg shadow-lg p-6 max-w-xl w-full">
 
-      <div v-if="currentStep === 1 "> <!--  || selectedFiles.length === 0 -->
+      <div v-if="currentStep === 1"> <!--  || selectedFiles.length === 0 -->
         <h2 class="text-2xl font-bold mb-4">Filend - File Send</h2>
         <p class="text-sm text-gray-600 mb-2">Tek tıkla gönder, tek kodla al!</p>
         <!-- CS 1 Upload -->
@@ -239,8 +236,8 @@ async function uploadFiles() {
         <!-- CS 2 Önizleme -->
         <div class="flex items-center justify-between mb-1">
           <h2 class="text-2xl font-bold">Filend - File Send</h2>
-          <p id="otpMessage" class="flex items-center justify-end border-2 border-dotted px-1
-          border-purple-400 rounded text-3xl text-green-600 font-extrabold">{{ otpMessage }}</p>
+          <p id="otpMessage" class="flex items-center justify-end border-2 border-dashed px-1 pb-1
+          border-gray-400 rounded text-3xl text-green-600 font-extrabold">{{ otpMessage }}</p>
         </div>
 
         <!-- Kopyalanan Bildirimi -->
@@ -251,27 +248,27 @@ async function uploadFiles() {
         <!-- Paylaş Butonları -->
         <div class="flex items-center mb-1">
           <p class="text-sm text-gray-600 mb-2">Tek tıkla gönder, tek kodla al!</p>
-          
-          <button @click="copyToClipboard(otpMessage)" class="ml-auto flex items-center border-2 border-gray-300 rounded-full p-2 transition">
+
+          <button @click="copyToClipboard(otpMessage)"
+            class="ml-auto flex items-center border-2 border-gray-300 rounded-full p-2 transition">
             <img v-if="!copied" src="@/assets/copy-icon.svg" alt="Kopyala" class="w-5 h-5" />
             <img v-else src="@/assets/ok.svg" class="w-5 h-5">
           </button>
 
-          <button @click="showShareOptions(otpMessage)" class="flex items-center border-2 border-gray-300 rounded-full p-2 transition">
+          <button @click="showShareOptions(otpMessage)"
+            class="flex items-center border-2 border-gray-300 rounded-full p-2 transition">
             <img src="@/assets/share-icon.svg" alt="Paylaş" class="w-5 h-5" />
           </button>
 
-          <div v-if="showOptions" class="absolute bg-white right-0 top-22 flex-col space-y-1 rounded-lg p-0 shadow-lg z-10">
-            <button @click="shareViaMail"
-              class="flex items-center justify-center border-2 border-[#e2abab] rounded-full p-2 transition">
+          <div v-if="showOptions"
+            class="absolute bg-white right-0 top-22 flex-col space-y-1 rounded-lg p-0 shadow-lg z-10">
+            <button @click="shareViaMail" class="flex items-center justify-center  p-2 transition">
               <img src="@/assets/mail-icon.svg" alt="Mail" class="w-5 h-5" />
             </button>
-            <button @click="shareViaWhatsapp"
-              class="flex items-center justify-center border-2 border-[#e2abab] rounded-full p-2 transition">
+            <button @click="shareViaWhatsapp" class="flex items-center justify-center p-2 transition">
               <img src="@/assets/whatsapp-icon.svg" alt="WhatsApp" class="w-5 h-5" />
             </button>
-            <button @click="shareViaTelegram"
-              class="flex items-center justify-center border-2 border-[#e2abab] rounded-full p-2 transition">
+            <button @click="shareViaTelegram" class="flex items-center justify-center p-2 transition">
               <img src="@/assets/telegram-icon.svg" alt="WhatsApp" class="w-5 h-5" />
             </button>
           </div>

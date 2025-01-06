@@ -77,6 +77,20 @@ func UploadFile(c *gin.Context) {
 		Otp:              otp,
 		UserSecurityCode: "usc0",
 	}
+	// var fileModel models.FileModel
+	// err = config.DB.Where("otp = ?", otp).First(&fileModel).Error
+	// if err != nil {
+	// 	fileModel = models.FileModel{
+	// 		FileModelID:      uuid.New(),
+	// 		Otp:              otp,
+	// 		UserSecurityCode: "usc0",
+	// 	}
+
+	// 	if err := config.DB.Create(&fileModel).Error; err != nil {
+	// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Veritabanına kaydedilemedi"})
+	// 		return
+	// 	}
+	// }
 
 	if err := config.DB.Create(&fileModel).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Veritabanına kaydedilemedi"})
