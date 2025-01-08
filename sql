@@ -9,7 +9,7 @@ CREATE TABLE file_models (
 
 CREATE TABLE file_details (
     file_details_id VARCHAR(36) PRIMARY KEY,
-    file_names TEXT[],
-    file_hashes TEXT[],
+    file_name TEXT,
+    file_hash TEXT,
     file_model_id VARCHAR(36) NOT NULL REFERENCES file_models(file_model_id) ON DELETE CASCADE
 );
