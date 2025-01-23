@@ -45,7 +45,7 @@ func UpdateFileTimeByHash2(fileHash string) error {
 	SET updated_at = NOW()
 	FROM file_details
 	WHERE file_details.file_model_id = file_models.file_model_id
-	AND file_details.file_hashes @> ? 
+	AND file_details.file_hash @> ? 
 	AND file_models.deleted_at IS NULL;
 `
 	err := config.DB.Exec(query, pq.StringArray{fileHash}).Error
@@ -253,32 +253,30 @@ func CheckFileHash2(c *gin.Context) {
 		return
 	}
 
-	if len(requestHash.FileHash) > 20 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "En fazla 20 dosya kontrol edilebilir"})
+	if len(requestHash.FileHash) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Dosya hash'i boş olamaz"})
 		return
 	}
 
+	var existingFile string
+
+	err := config.DB.Table("file_details").Select("file_hashes").Where("file_details.file_hashes @> ? AND file_models.deleted_at IS NULL", requestHash.FileHash).
+		Joins("JOIN file_models ON file_details.file_model_id = file_models.file_model_id").
+		Scan(&existingFile).Error
+
 	fileStatus := make(map[string]bool)
 
-	for _, fileHash := range requestHash.FileHash {
-		var existingFiles []models.FileDetails
-
-		err := config.DB.Where("file_details.file_hashes @> ? AND file_models.deleted_at IS NULL", requestHash.FileHash).
-			Joins("JOIN file_models ON file_details.file_model_id = file_models.file_model_id").
-			Find(&existingFiles).Error
-
-		// Eğer dosya bulunursa false, bulunamazsa true
-		if err == nil && len(existingFiles) > 0 {
-			err := UpdateFileTimeByHash(requestHash.FileHash)
-			if err != nil {
-				log.Printf("Hata: Dosya zaman güncellemesi başarısız: %v", err)
-			} else {
-				log.Printf("Zaman güncellemesi başarıyla yapıldı: %s", fileHash)
-			}
-			fileStatus[requestHash.FileHash] = false // Dosya mevcut
+	// Eğer dosya bulunursa false, bulunamazsa true
+	if err == nil && existingFile != "" {
+		err := UpdateFileTimeByHash(requestHash.FileHash)
+		if err != nil {
+			log.Printf("Hata: Dosya zaman güncellemesi başarısız: %v", err)
 		} else {
-			fileStatus[requestHash.FileHash] = true // Dosya mevcut değil, yüklenebilir
+			log.Printf("Zaman güncellemesi başarıyla yapıldı: %s", requestHash.FileHash)
 		}
+		fileStatus[requestHash.FileHash] = false // Dosya mevcut
+	} else {
+		fileStatus[requestHash.FileHash] = true // Dosya mevcut değil, yüklenebilir
 	}
 
 	//log.Printf("Existing Files: %+v", existingFiles)

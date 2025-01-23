@@ -43,13 +43,13 @@ func DeleteOldFiles(db *gorm.DB) {
 		}
 
 		for _, fileDetail := range fileDetails {
-			for _, hash := range fileDetail.FileHashes {
-				log.Printf("Silme işlemi başlatılıyor: %s hash ile", hash)
-				err := config.MinioClient.RemoveObject(c, "filend", hash, minio.RemoveObjectOptions{})
-				if err != nil {
-					log.Printf("MinIO'dan dosya %s silinemedi: %v", hash, err)
-					continue
-				}
+			hash := fileDetail.FileHash
+			log.Printf("Silme işlemi başlatılıyor: %s hash ile", hash)
+
+			err := config.MinioClient.RemoveObject(c, "filend", hash, minio.RemoveObjectOptions{})
+			if err != nil {
+				log.Printf("MinIO'dan dosya %s silinemedi: %v", hash, err)
+				continue
 			}
 		}
 	}

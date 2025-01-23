@@ -145,11 +145,8 @@ async function uploadFiles() {
   }
 
   // Dosyaları yüklemeye başla
-  const fileHashes = [];
   for (const file of selectedFiles.value) {
-    const fileHash = await calculateSHA256(file);
-    fileHashes.push(fileHash);
-  }
+  const fileHash = await calculateSHA256(file);
 
   // Hash kontrol isteği
   const hashCheckResponse = await fetch(API_ENDPOINTS.CHECK_FILE_HASH, {
@@ -157,55 +154,50 @@ async function uploadFiles() {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ fileHashes }),
+    body: JSON.stringify({ fileHash }),
   });
   const hashCheckData = await hashCheckResponse.json();
 
   // Dosya yükleme işlemi için formData oluştur
-  const formData = new FormData();
-  selectedFiles.value.forEach((file, i) => {
-    const fileHash = fileHashes[i];
+    const formData = new FormData();
     if (hashCheckData.fileStatus[fileHash]) {
       formData.append("files", file);
-      formData.append("fileHashes", fileHash);
+      formData.append("fileHash", fileHash);
     } else {
-      formData.append("fileNames[]", file.name);
-      formData.append("fileHashes[]", fileHash);
+      formData.append("fileName", file.name);
+      formData.append("fileHash", fileHash);
     }
-  });
 
-  try {
-    const response = await axios.post(`${API_ENDPOINTS.UPLOAD_FILES}?otp=${otp}`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-      onUploadProgress: progressEvent => {
-        const totalBytes = progressEvent.total || 0;
-        const uploadedBytes = progressEvent.loaded || 0;
+    try {
+      const response = await axios.post(`${API_ENDPOINTS.UPLOAD_FILES}?otp=${otp}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress: progressEvent => {
+          const totalBytes = progressEvent.total || 0;
+          const uploadedBytes = progressEvent.loaded || 0;
 
-        selectedFiles.value.forEach((file, index) => {
           const uploadProgress = Math.round((uploadedBytes / totalBytes) * 100);
           const uploadedMB = (uploadedBytes / (1024 * 1024)).toFixed(2);
           const totalMB = (file.size / (1024 * 1024)).toFixed(2);
 
-          percentage.value[index] = {};
-          percentage.value[index].uploadProgress = uploadProgress;
-          percentage.value[index].uploadedMB = uploadedMB; // Yüklenmiş MB
-          percentage.value[index].totalMB = totalMB; // Toplam MB
+          percentage.value = {};
+          percentage.value.uploadProgress = uploadProgress;
+          percentage.value.uploadedMB = uploadedMB; // Yüklenmiş MB
+          percentage.value.totalMB = totalMB; // Toplam MB
 
           console.log(`Dosya: ${file.name} - Yüzde: ${uploadProgress}%`);
-        });
-      },
-    });
+        },
+      });
 
-    if (response.data.success) {
-      console.log("Dosyalar başarıyla yüklendi.");
-    } else {
-      console.error("Dosya yükleme hatası:", response.data.message);
+      if (response.data.success) {
+        console.log(`Dosya ${file.name} başarıyla yüklendi.`);
+      }
+    } catch (error) {
+      console.error(`Dosya ${file.name} yüklenirken hata oluştu:`, error);
+      otpMessage.value = "Sunucu ile iletişimde bir sorun var.";
     }
-  } catch (error) {
-    console.error("Hata:", error);
-    otpMessage.value = "Sunucu ile iletişimde bir sorun var.";
   }
 }
+
 </script>
 
 <template>
@@ -286,13 +278,13 @@ async function uploadFiles() {
                       class="ml-auto font-extrabold text-red-500 hover:text-red-700">✕</button>
                   </div>
                   <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
-                    <div :style="{ width: `${percentage[index]?.uploadProgress || 0}%` }"
+                    <div :style="{ width: `${percentage?.uploadProgress || 0}%` }"
                       class="bg-blue-600 h-2 rounded-full"></div>
                   </div>
                   <span class="text-xs text-left mt-1">
                     {{
-                      percentage[index]?.uploadProgress
-                        ? `${percentage[index]?.uploadedMB || "0.00"} MB / ${percentage[index]?.totalMB || "0.00"
+                      percentage?.uploadProgress
+                        ? `${percentage?.uploadedMB || "0.00"} MB / ${percentage?.totalMB || "0.00"
                         } MB`
                         : `0.00 MB / ${(file.size / (1024 * 1024)).toFixed(2)} MB`
                     }}
