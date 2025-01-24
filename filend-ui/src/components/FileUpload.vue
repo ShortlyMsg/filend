@@ -112,6 +112,7 @@ function handleDrop(event) {
 
   handleFileUpload({ target: { files } });
 }
+const uploadedFiles = new Set();
 
 async function uploadFiles() {
 
@@ -146,19 +147,23 @@ async function uploadFiles() {
 
   // Dosyaları yüklemeye başla
   for (const file of selectedFiles.value) {
-  const fileHash = await calculateSHA256(file);
+    const fileHash = await calculateSHA256(file);
 
-  // Hash kontrol isteği
-  const hashCheckResponse = await fetch(API_ENDPOINTS.CHECK_FILE_HASH, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ fileHash }),
-  });
-  const hashCheckData = await hashCheckResponse.json();
+    if (uploadedFiles.has(fileHash)) {
+      // Doldurulacak unutma !!!!!!!!!!!!!!!
+    }
 
-  // Dosya yükleme işlemi için formData oluştur
+    // Hash kontrol isteği
+    const hashCheckResponse = await fetch(API_ENDPOINTS.CHECK_FILE_HASH, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ fileHash }),
+    });
+    const hashCheckData = await hashCheckResponse.json();
+
+    // Dosya yükleme işlemi için formData oluştur
     const formData = new FormData();
     if (hashCheckData.fileStatus[fileHash]) {
       formData.append("files", file);
@@ -179,10 +184,11 @@ async function uploadFiles() {
           const uploadedMB = (uploadedBytes / (1024 * 1024)).toFixed(2);
           const totalMB = (file.size / (1024 * 1024)).toFixed(2);
 
-          percentage.value = {};
-          percentage.value.uploadProgress = uploadProgress;
-          percentage.value.uploadedMB = uploadedMB; // Yüklenmiş MB
-          percentage.value.totalMB = totalMB; // Toplam MB
+          percentage.value[fileHash] = {
+            uploadProgress,
+            uploadedMB,
+            totalMB,
+          };
 
           console.log(`Dosya: ${file.name} - Yüzde: ${uploadProgress}%`);
         },
@@ -278,8 +284,8 @@ async function uploadFiles() {
                       class="ml-auto font-extrabold text-red-500 hover:text-red-700">✕</button>
                   </div>
                   <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
-                    <div :style="{ width: `${percentage?.uploadProgress || 0}%` }"
-                      class="bg-blue-600 h-2 rounded-full"></div>
+                    <div :style="{ width: `${percentage?.uploadProgress || 0}%` }" class="bg-blue-600 h-2 rounded-full">
+                    </div>
                   </div>
                   <span class="text-xs text-left mt-1">
                     {{

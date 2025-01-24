@@ -9,8 +9,6 @@ import (
 	"filend/services"
 	"log"
 
-	"github.com/lib/pq"
-
 	"io"
 	"net/http"
 	"regexp"
@@ -45,10 +43,10 @@ func UpdateFileTimeByHash(fileHash string) error {
 	SET updated_at = NOW()
 	FROM file_details
 	WHERE file_details.file_model_id = file_models.file_model_id
-	AND file_details.file_hashes @> ? 
+	AND file_details.file_hash @> ? 
 	AND file_models.deleted_at IS NULL;
 `
-	err := config.DB.Exec(query, pq.StringArray{fileHash}).Error
+	err := config.DB.Exec(query, "%"+fileHash+"%").Error
 	return err
 }
 
@@ -69,32 +67,22 @@ func UploadFile(c *gin.Context) {
 	// 	return
 	// }
 
-	fileNames := c.PostFormArray("fileNames[]")
-	fileHashes := c.PostFormArray("fileHashes[]")
+	fileName := c.PostForm("fileName")
+	fileHash := c.PostForm("fileHash")
 
-	fileModel := models.FileModel{
-		FileModelID:      uuid.New(),
-		Otp:              otp,
-		UserSecurityCode: "usc0",
-	}
-	// var fileModel models.FileModel
-	// err = config.DB.Where("otp = ?", otp).First(&fileModel).Error
-	// if err != nil {
-	// 	fileModel = models.FileModel{
-	// 		FileModelID:      uuid.New(),
-	// 		Otp:              otp,
-	// 		UserSecurityCode: "usc0",
-	// 	}
+	var fileModel models.FileModel
+	err = config.DB.Where("otp = ?", otp).First(&fileModel).Error
+	if err != nil {
+		fileModel = models.FileModel{
+			FileModelID:      uuid.New(),
+			Otp:              otp,
+			UserSecurityCode: "usc0",
+		}
 
-	// 	if err := config.DB.Create(&fileModel).Error; err != nil {
-	// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Veritabanına kaydedilemedi"})
-	// 		return
-	// 	}
-	// }
-
-	if err := config.DB.Create(&fileModel).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Veritabanına kaydedilemedi"})
-		return
+		if err := config.DB.Create(&fileModel).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Veritabanına kaydedilemedi"})
+			return
+		}
 	}
 
 	for _, file := range uploadedFiles {
@@ -107,14 +95,14 @@ func UploadFile(c *gin.Context) {
 		defer uploadedFile.Close()
 
 		// Hashi oluştur
-		fileHash, err := GenerateFileHash(uploadedFile)
+		hash, err := GenerateFileHash(uploadedFile)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Dosya Hashi oluşturulamadı"})
 			return
 		}
 
 		var existingFile models.FileDetails
-		err = config.DB.Where("file_details.file_hashes @> ? AND file_models.deleted_at IS NULL", pq.StringArray{fileHash}).
+		err = config.DB.Where("file_details.file_hash @> ? AND file_models.deleted_at IS NULL", hash).
 			Joins("JOIN file_models ON file_details.file_model_id = file_models.file_model_id").
 			First(&existingFile).Error
 		if err == nil {
@@ -128,7 +116,7 @@ func UploadFile(c *gin.Context) {
 			// MinIO'ya hash ismiyle yükle
 		} else {
 			uploadedFile.Seek(0, io.SeekStart)
-			_, err = config.MinioClient.PutObject(c, "filend", fileHash, uploadedFile, file.Size, minio.PutObjectOptions{
+			_, err = config.MinioClient.PutObject(c, "filend", hash, uploadedFile, file.Size, minio.PutObjectOptions{
 				ContentType: file.Header.Get("Content-Type"),
 			})
 			if err != nil {
@@ -136,14 +124,13 @@ func UploadFile(c *gin.Context) {
 				return
 			}
 
-			fileNames = append(fileNames, file.Filename)
-			fileHashes = append(fileHashes, fileHash)
+			fileName = file.Filename
 		}
 	}
 	fileDetail := models.FileDetails{
 		FileDetailsID: uuid.New(),
-		FileNames:     pq.StringArray(fileNames),
-		FileHashes:    pq.StringArray(fileHashes),
+		FileName:      fileName,
+		FileHash:      fileHash,
 		FileModelID:   fileModel.FileModelID,
 	}
 
@@ -152,7 +139,7 @@ func UploadFile(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"otp": otp, "fileNames": fileNames})
+	c.JSON(http.StatusOK, gin.H{"otp": otp, "fileName": fileName})
 }
 
 func DownloadFile(c *gin.Context) {
@@ -197,11 +184,9 @@ func DownloadFile(c *gin.Context) {
 
 	var fileName string
 	for _, detail := range fileDetails {
-		for i, fileHash := range detail.FileHashes {
-			if fileHash == request.FileHash {
-				fileName = detail.FileNames[i]
-				break
-			}
+		if detail.FileHash == request.FileHash {
+			fileName = detail.FileName
+			break
 		}
 	}
 
@@ -249,49 +234,47 @@ func GetAllFiles(c *gin.Context) {
 	var fileNames []string
 	var fileHashes []string
 	for _, detail := range fileDetails {
-		fileNames = append(fileNames, detail.FileNames...)
-		fileHashes = append(fileHashes, detail.FileHashes...)
+		fileNames = append(fileNames, detail.FileName)
+		fileHashes = append(fileHashes, detail.FileHash)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"files": fileNames, "hashes": fileHashes})
 }
 
 func CheckFileHash(c *gin.Context) {
-	var requestHashes struct {
-		FileHashes []string `json:"fileHashes"`
+	var requestHash struct {
+		FileHash string `json:"fileHash"`
 	}
 
-	if err := c.ShouldBindJSON(&requestHashes); err != nil {
+	if err := c.ShouldBindJSON(&requestHash); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Geçersiz istek"})
 		return
 	}
 
-	if len(requestHashes.FileHashes) > 20 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "En fazla 20 dosya kontrol edilebilir"})
+	if len(requestHash.FileHash) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Dosya hash'i boş olamaz"})
 		return
 	}
 
+	var existingFile string
+
+	err := config.DB.Table("file_details").Select("file_hashes").Where("file_details.file_hashes @> ? AND file_models.deleted_at IS NULL", requestHash.FileHash).
+		Joins("JOIN file_models ON file_details.file_model_id = file_models.file_model_id").
+		Scan(&existingFile).Error
+
 	fileStatus := make(map[string]bool)
 
-	for _, fileHash := range requestHashes.FileHashes {
-		var existingFiles []models.FileDetails
-
-		err := config.DB.Where("file_details.file_hashes @> ? AND file_models.deleted_at IS NULL", pq.StringArray{fileHash}).
-			Joins("JOIN file_models ON file_details.file_model_id = file_models.file_model_id").
-			Find(&existingFiles).Error
-
-		// Eğer dosya bulunursa false, bulunamazsa true
-		if err == nil && len(existingFiles) > 0 {
-			err := UpdateFileTimeByHash(fileHash)
-			if err != nil {
-				log.Printf("Hata: Dosya zaman güncellemesi başarısız: %v", err)
-			} else {
-				log.Printf("Zaman güncellemesi başarıyla yapıldı: %s", fileHash)
-			}
-			fileStatus[fileHash] = false // Dosya mevcut
+	// Eğer dosya bulunursa false, bulunamazsa true
+	if err == nil && existingFile != "" {
+		err := UpdateFileTimeByHash(requestHash.FileHash)
+		if err != nil {
+			log.Printf("Hata: Dosya zaman güncellemesi başarısız: %v", err)
 		} else {
-			fileStatus[fileHash] = true // Dosya mevcut değil, yüklenebilir
+			log.Printf("Zaman güncellemesi başarıyla yapıldı: %s", requestHash.FileHash)
 		}
+		fileStatus[requestHash.FileHash] = false // Dosya mevcut
+	} else {
+		fileStatus[requestHash.FileHash] = true // Dosya mevcut değil, yüklenebilir
 	}
 
 	//log.Printf("Existing Files: %+v", existingFiles)

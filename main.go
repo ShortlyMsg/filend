@@ -4,7 +4,6 @@ import (
 	"filend/config"
 	"filend/routes"
 	"filend/services"
-	"fmt"
 	"log"
 
 	"github.com/joho/godotenv"
@@ -20,8 +19,6 @@ func main() {
 	config.ConnectMinio()
 
 	go services.StartScheduler(config.DB)
-
-	fmt.Println(services.GenerateOneTimePassword())
 
 	router := routes.SetupRouter()
 	router.Static("/ui", "./ui")
