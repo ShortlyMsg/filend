@@ -81,8 +81,8 @@ function onFileChange(event) {
     return;
   }
 
-  selectedFiles.value = [...selectedFiles.value, ...newFiles];
-  uploadFiles();
+  selectedFiles.value = [...newFiles];
+  uploadFiles(newFiles);
 }
 
 function handleFileUpload(event) {
@@ -95,7 +95,7 @@ function handleFileUpload(event) {
     return;
   }
 
-  selectedFiles.value = [...selectedFiles.value, ...newFiles];
+  selectedFiles.value = [...newFiles];
   currentStep.value = 2; // Dosya önizleme adımına geç
   uploadFiles();
 }
@@ -112,7 +112,6 @@ function handleDrop(event) {
 
   handleFileUpload({ target: { files } });
 }
-const uploadedFiles = new Set();
 
 async function uploadFiles() {
 
@@ -148,10 +147,6 @@ async function uploadFiles() {
   // Dosyaları yüklemeye başla
   for (const file of selectedFiles.value) {
     const fileHash = await calculateSHA256(file);
-
-    if (uploadedFiles.has(fileHash)) {
-      // Doldurulacak unutma !!!!!!!!!!!!!!!
-    }
 
     // Hash kontrol isteği
     const hashCheckResponse = await fetch(API_ENDPOINTS.CHECK_FILE_HASH, {
