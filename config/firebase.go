@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 
 	firebase "firebase.google.com/go"
 	"firebase.google.com/go/messaging"
@@ -16,9 +15,7 @@ var MessagingClient *messaging.Client
 
 func InıtFirebase() {
 
-	credJSON := os.Getenv("FIREBASE_CREDENTIALS")
-	// JSON formatını []byte dizisine çevir
-	opt := option.WithCredentialsJSON([]byte(credJSON))
+	opt := option.WithCredentialsFile("./firebase-config.json")
 
 	// Firebase app
 	app, err := firebase.NewApp(context.Background(), nil, opt)
