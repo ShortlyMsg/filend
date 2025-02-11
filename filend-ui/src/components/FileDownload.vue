@@ -93,7 +93,7 @@ const downloadFile = async (index) => {
           <input type="text" v-model="otp" class="border-2 border-dashed border-gray-400 p-2 rounded"
             placeholder="OTP kodunu buraya girin" />
         </div>
-        <button @click="fetchFiles" class="px-4 py-0 bg-green-400 text-white rounded hover:bg-green-700">
+        <button @click="fetchFiles" class="px-4 py-1 border-2 border-green-500 text-green-600 rounded hover:bg-green-500 hover:text-white cursor-pointer">
           Listele
         </button>
       </div>

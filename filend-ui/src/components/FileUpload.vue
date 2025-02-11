@@ -179,7 +179,7 @@ async function uploadFiles() {
           const uploadedMB = (uploadedBytes / (1024 * 1024)).toFixed(2);
           const totalMB = (file.size / (1024 * 1024)).toFixed(2);
 
-          percentage.value[fileHash] = {
+          percentage.value[file.name] = {
             uploadProgress,
             uploadedMB,
             totalMB,
@@ -279,13 +279,13 @@ async function uploadFiles() {
                       class="ml-auto font-extrabold text-red-500 hover:text-red-700">✕</button>
                   </div>
                   <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
-                    <div :style="{ width: `${percentage?.uploadProgress || 0}%` }" class="bg-blue-600 h-2 rounded-full">
+                    <div :style="{ width: `${percentage[file.name]?.uploadProgress || 0}%` }" class="bg-blue-600 h-2 rounded-full">
                     </div>
                   </div>
                   <span class="text-xs text-left mt-1">
                     {{
-                      percentage?.uploadProgress
-                        ? `${percentage?.uploadedMB || "0.00"} MB / ${percentage?.totalMB || "0.00"
+                      percentage[file.name]?.uploadProgress
+                        ? `${percentage[file.name]?.uploadedMB || "0.00"} MB / ${percentage[file.name]?.totalMB || "0.00"
                         } MB`
                         : `0.00 MB / ${(file.size / (1024 * 1024)).toFixed(2)} MB`
                     }}
@@ -309,12 +309,8 @@ async function uploadFiles() {
           <p>Max files: 20 | Max file size: 2GB</p>
         </div>
         <div class="mt-4 flex justify-end space-x-3">
-          <button @click="goBackStep" class="px-4 py-2 text-gray-600 hover:text-gray-800">
-            Geri
-          </button>
-          <button @click="uploadFiles" class="px-4 py-2 bg-blue-600 text-white rounded "
-            :disabled="selectedFiles.length === 0" :class="{ 'bg-gray-400': selectedFiles.length === 0 }">
-            Gönder
+          <button @click="goBackStep" class="px-4 py-1 border-2 border-red-600 text-red-600 rounded hover:bg-red-600 hover:text-white cursor-pointer">
+            İptal Et
           </button>
         </div>
       </div>

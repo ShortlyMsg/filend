@@ -13,7 +13,7 @@ import (
 var FireBaseApp *firebase.App
 var MessagingClient *messaging.Client
 
-func InıtFirebase() {
+func InitFirebase() {
 
 	opt := option.WithCredentialsFile("./firebase-config.json")
 

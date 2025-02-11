@@ -17,7 +17,7 @@ func main() {
 
 	config.ConnectDatabase()
 	config.ConnectMinio()
-	config.InıtFirebase()
+	config.InitFirebase()
 
 	go services.StartScheduler(config.DB)
 
