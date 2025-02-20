@@ -53,63 +53,46 @@ async function calculateSHA256(file) {
   return hashHex;
 }
 
-function validateFiles(files, selectedFiles) {
-  const maxFileLimit = 20;
-  const maxTotalSize = 2 * 1024 * 1024 * 1024; // 2GB
+// function validateFiles(files, selectedFiles) {
+//   const maxFileLimit = 20;
+//   const maxTotalSize = 2 * 1024 * 1024 * 1024; // 2GB
 
-  const filesArray = Array.from(files);
+//   const filesArray = Array.from(files);
 
-  if (selectedFiles.length + filesArray.length > maxFileLimit) {
-    return "Maksimum dosya limiti aşıldı.";
-  }
+//   if (selectedFiles.length + filesArray.length > maxFileLimit) {
+//     return "Maksimum dosya limiti aşıldı.";
+//   }
 
-  const totalSize = selectedFiles.reduce((acc, file) => acc + file.size, 0)
-    + files.reduce((acc, file) => acc + file.size, 0);
-  if (totalSize > maxTotalSize) {
-    return "Toplam dosya boyutu 2 GB'ı geçemez.";
-  }
+//   const totalSize = selectedFiles.reduce((acc, file) => acc + file.size, 0)
+//     + files.reduce((acc, file) => acc + file.size, 0);
+//   if (totalSize > maxTotalSize) {
+//     return "Toplam dosya boyutu 2 GB'ı geçemez.";
+//   }
 
-  return null; // Geçerli dosyalar
-}
-
-function onFileChange(event) {
-  const newFiles = Array.from(event.target.files)
-
-  const errorMessage = validateFiles(newFiles, selectedFiles.value);
-  if (errorMessage) {
-    alert(errorMessage);
-    return;
-  }
-
-  selectedFiles.value = [...newFiles];
-  uploadFiles(newFiles);
-}
+//   return null; // Geçerli dosyalar
+// }
 
 function handleFileUpload(event) {
   const files = event.target.files;
   const newFiles = Array.from(files);
 
-  const errorMessage = validateFiles(newFiles, selectedFiles.value);
-  if (errorMessage) {
-    alert(errorMessage);
-    return;
-  }
-
-  selectedFiles.value = [...newFiles];
+  // const errorMessage = validateFiles(newFiles, selectedFiles.value);
+  // if (errorMessage) {
+  //   alert(errorMessage);
+  //   return;
+  // }
+  newFiles.forEach(file => {
+    if (!selectedFiles.value.some(selectedFile => selectedFile.name === file.name)) {
+      selectedFiles.value.push({ ...file, isUpload: false });
+    }
+  });
   currentStep.value = 2; // Dosya önizleme adımına geç
   uploadFiles();
 }
 
 function handleDrop(event) {
+  event.preventDefault()
   const files = event.dataTransfer.files;
-  const newFiles = Array.from(files);
-
-  const errorMessage = validateFiles(newFiles, selectedFiles.value);
-  if (errorMessage) {
-    alert(errorMessage);
-    return;
-  }
-
   handleFileUpload({ target: { files } });
 }
 
@@ -191,6 +174,7 @@ async function uploadFiles() {
 
       if (response.data.success) {
         console.log(`Dosya ${file.name} başarıyla yüklendi.`);
+        file.isUpload = true;
       }
     } catch (error) {
       console.error(`Dosya ${file.name} yüklenirken hata oluştu:`, error);
@@ -271,7 +255,7 @@ async function uploadFiles() {
           <div class="overflow-y-auto scrollbar-hidden h-60 p-2">
             <div v-for="(file, index) in selectedFiles" :key="index" class="mb-4">
               <div class="flex items-center">
-                <FileIcon :fileName="file.name" class="32px" />
+                <FileIcon :fileName="file.name || 'file-icon.svg'" class="32px" />
                 <div class="flex flex-col ml-4 w-full">
                   <div class="flex items-center">
                     <span class="text-sm">{{ file.name }}</span>
@@ -297,7 +281,7 @@ async function uploadFiles() {
           <div class="absolute bottom-2 left-2 flex">
             <label
               class="px-2 py-1 border-2 border-purple-600 text-purple-600 rounded hover:bg-purple-600 hover:text-white cursor-pointer">
-              <input type="file" multiple hidden @change="onFileChange" />
+              <input type="file" multiple hidden @change="handleFileUpload" />
               Upload More Files
             </label>
           </div>

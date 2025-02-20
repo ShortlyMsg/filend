@@ -15,7 +15,7 @@ var MessagingClient *messaging.Client
 
 func InitFirebase() {
 
-	opt := option.WithCredentialsFile("./firebase-config.json")
+	opt := option.WithCredentialsFile("./firebase-config-be.json")
 
 	// Firebase app
 	app, err := firebase.NewApp(context.Background(), nil, opt)
