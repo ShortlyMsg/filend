@@ -1,22 +1,47 @@
 package controllers
 
 import (
-	"fmt"
+	"context"
+	"filend/config"
+	"log"
 	"net/http"
+
+	"firebase.google.com/go/messaging"
+	"github.com/gin-gonic/gin"
 )
 
-func NotifyUploadStart(w http.ResponseWriter, r *http.Request) {
-	var requestData struct {
-		FileName string `json:"fileName"`
-		FileSize string `json:"fileSize"`
-		FileHash string `json:"fileHash"`
-		Token    string `json:"token"`
-	}
-
-	fmt.Fprintf(w, "Upload başlatıldı: %s", requestData.FileName)
+type UploadProgress struct {
+	Otp        string `json:"otp"`
+	FileName   string `json:"fileName"`
+	UploadedMB string `json:"uploadedMB"`
+	TotalMB    string `json:"totalMB"`
+	Progress   int    `json:"progress"`
 }
 
-func NotifyDownloadStart(w http.ResponseWriter, r *http.Request) {
+func SendUploadProgress(c *gin.Context) {
+	var progress UploadProgress
 
-	fmt.Fprintf(w, "Download başlatıldı: %s")
+	if err := c.ShouldBindJSON(&progress); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Geçersiz JSON formatı"})
+		return
+	}
+
+	client := config.MessagingClient
+
+	message := &messaging.Message{
+		Topic: progress.Otp,
+		Notification: &messaging.Notification{
+			Title: progress.FileName,
+			Body:  progress.UploadedMB + "MB / " + progress.TotalMB + "MB (" + string(progress.Progress) + "%)",
+		},
+	}
+
+	response, err := client.Send(context.Background(), message)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Firebase mesaj gönderme hatası: " + err.Error()})
+		return
+	}
+
+	log.Printf("Mesaj başarıyla gönderildi. Response: %+v", response)
+	c.JSON(http.StatusOK, gin.H{"message": "Firebase bildirimi gönderildi", "response": response})
 }

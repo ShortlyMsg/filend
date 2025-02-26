@@ -81,11 +81,12 @@ function handleFileUpload(event) {
   //   alert(errorMessage);
   //   return;
   // }
-  newFiles.forEach(file => {
-    if (!selectedFiles.value.some(selectedFile => selectedFile.name === file.name)) {
-      selectedFiles.value.push({ ...file, isUpload: false });
-    }
-  });
+  // newFiles.forEach(file => {
+  //   if (!selectedFiles.value.some(selectedFile => selectedFile.name === file.name)) {
+  //     selectedFiles.value.push({ ...file, isUpload: false });
+  //   }
+  // });
+  selectedFiles.value = newFiles
   currentStep.value = 2; // Dosya önizleme adımına geç
   uploadFiles();
 }
@@ -169,6 +170,23 @@ async function uploadFiles() {
           };
 
           console.log(`Dosya: ${file.name} - Yüzde: ${uploadProgress}%`);
+          try {
+            fetch(`${API_ENDPOINTS.SEND_PROGRESS}`,{
+              method: "POST",
+              headers:{
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                otp,
+                fileName: file.name,
+                uploadedMB,
+                totalMB,
+                progress: uploadProgress,
+              })
+            })
+          } catch (error) {
+            console.error("Firebase'e yükleme durumu gönderme hatası:", error);
+          }
         },
       });
 

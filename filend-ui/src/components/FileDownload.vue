@@ -83,6 +83,10 @@ const downloadFile = async (index) => {
                 <img src="@/assets/download.svg" alt="Download" @click="downloadFile(index)"
                   class="ml-auto cursor-pointer w-6 h-6" />
               </div>
+              <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
+                <div  class="bg-green-400 h-2 rounded-full"></div>
+              </div>
+              <div class="text-xs text-right mt-1">795.18 MB</div>
             </div>
           </div>
         </div>
