@@ -5,6 +5,7 @@ import (
 	"filend/config"
 	"log"
 	"net/http"
+	"strconv"
 
 	"firebase.google.com/go/messaging"
 	"github.com/gin-gonic/gin"
@@ -32,7 +33,7 @@ func SendUploadProgress(c *gin.Context) {
 		Topic: progress.Otp,
 		Notification: &messaging.Notification{
 			Title: progress.FileName,
-			Body:  progress.UploadedMB + "MB / " + progress.TotalMB + "MB (" + string(progress.Progress) + "%)",
+			Body:  progress.UploadedMB + "MB / " + progress.TotalMB + "MB (" + strconv.Itoa(progress.Progress) + "%)",
 		},
 	}
 
@@ -42,6 +43,6 @@ func SendUploadProgress(c *gin.Context) {
 		return
 	}
 
-	log.Printf("Mesaj başarıyla gönderildi. Response: %+v", response)
+	log.Printf("Mesaj başarıyla gönderildi. Response: %+v", response, progress)
 	c.JSON(http.StatusOK, gin.H{"message": "Firebase bildirimi gönderildi", "response": response})
 }

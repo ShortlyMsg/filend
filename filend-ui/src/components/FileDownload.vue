@@ -1,10 +1,23 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import FileIcon from '@/utils/FileIcon.vue';
 import { API_ENDPOINTS } from '@/utils/api';
+import { messaging, onMessage } from '@/utils/firebase';
 
 const otp = ref('');
 const files = ref([]);
+const progress = ref(0);
+
+onMounted(() => {
+  onMessage(messaging, (payload) => {
+    console.log("Firebase mesajı alındı:", payload);
+    console.log(payload)
+    if (payload.data && payload.data.progress) {
+  progress.value = parseInt(payload.data.progress, 10);
+}
+
+  });
+});
 
 const fetchFiles = async () => {
   if (!otp.value) {
@@ -84,9 +97,9 @@ const downloadFile = async (index) => {
                   class="ml-auto cursor-pointer w-6 h-6" />
               </div>
               <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
-                <div  class="bg-green-400 h-2 rounded-full"></div>
+                <div class="bg-green-400 h-2 rounded-full" :style="{ width: progress + '%' }"></div>
               </div>
-              <div class="text-xs text-right mt-1">795.18 MB</div>
+              <div class="text-xs text-right mt-1">{{ progress }} MB</div>
             </div>
           </div>
         </div>
