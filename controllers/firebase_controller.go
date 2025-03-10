@@ -2,10 +2,10 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"filend/config"
 	"log"
 	"net/http"
-	"strconv"
 
 	"firebase.google.com/go/messaging"
 	"github.com/gin-gonic/gin"
@@ -29,11 +29,23 @@ func SendUploadProgress(c *gin.Context) {
 
 	client := config.MessagingClient
 
+	bodyData := map[string]interface{}{
+		"uploadedMB": progress.UploadedMB,
+		"totalMB":    progress.TotalMB,
+		"progress":   progress.Progress,
+	}
+
+	bodyJSON, err := json.Marshal(bodyData)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "JSON oluşturma hatası: " + err.Error()})
+		return
+	}
+
 	message := &messaging.Message{
 		Topic: progress.Otp,
 		Notification: &messaging.Notification{
 			Title: progress.FileName,
-			Body:  progress.UploadedMB + "MB / " + progress.TotalMB + "MB (" + strconv.Itoa(progress.Progress) + "%)",
+			Body:  string(bodyJSON),
 		},
 	}
 
