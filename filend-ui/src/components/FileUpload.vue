@@ -86,9 +86,9 @@ function handleFileUpload(event) {
   //     selectedFiles.value.push({ ...file, isUpload: false });
   //   }
   // });
-  selectedFiles.value = newFiles
+  selectedFiles.value = [...selectedFiles.value, ...newFiles]; 
   currentStep.value = 2; // Dosya önizleme adımına geç
-  uploadFiles();
+  uploadFiles(newFiles);
 }
 
 function handleDrop(event) {
@@ -97,7 +97,8 @@ function handleDrop(event) {
   handleFileUpload({ target: { files } });
 }
 
-async function uploadFiles() {
+async function uploadFiles(filesToUpload) {
+  if (filesToUpload.length === 0) return;
 
   let otp = otpMessage.value;
 
@@ -129,7 +130,7 @@ async function uploadFiles() {
   }
 
   // Dosyaları yüklemeye başla
-  for (const file of selectedFiles.value) {
+  for (const file of filesToUpload) {
     const fileHash = await calculateSHA256(file);
 
     // Hash kontrol isteği
@@ -192,7 +193,6 @@ async function uploadFiles() {
 
       if (response.data.success) {
         console.log(`Dosya ${file.name} başarıyla yüklendi.`);
-        file.isUpload = true;
       }
     } catch (error) {
       console.error(`Dosya ${file.name} yüklenirken hata oluştu:`, error);
