@@ -12,11 +12,10 @@ import (
 )
 
 type UploadProgress struct {
-	Otp        string `json:"otp"`
-	FileName   string `json:"fileName"`
-	UploadedMB string `json:"uploadedMB"`
-	TotalMB    string `json:"totalMB"`
-	Progress   int    `json:"progress"`
+	Otp      string `json:"otp"`
+	FileName string `json:"fileName"`
+	TotalMB  string `json:"totalMB"`
+	Progress int    `json:"progress"`
 }
 
 func SendUploadProgress(c *gin.Context) {
@@ -30,9 +29,8 @@ func SendUploadProgress(c *gin.Context) {
 	client := config.MessagingClient
 
 	bodyData := map[string]interface{}{
-		"uploadedMB": progress.UploadedMB,
-		"totalMB":    progress.TotalMB,
-		"progress":   progress.Progress,
+		"totalMB":  progress.TotalMB,
+		"progress": progress.Progress,
 	}
 
 	bodyJSON, err := json.Marshal(bodyData)

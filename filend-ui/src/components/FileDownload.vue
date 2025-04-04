@@ -4,19 +4,30 @@ import FileIcon from '@/utils/FileIcon.vue';
 import { API_ENDPOINTS } from '@/utils/api';
 import { messaging, onMessage } from '@/utils/firebase';
 
-const otp = ref('');
+const otp = ref('74cmze');
 const files = ref([]);
 const progress = ref(0);
 
-onMounted(() => {
+const listenToFirebaseMessages = () => {
   onMessage(messaging, (payload) => {
-    console.log("Firebase mesajı alındı:", payload);
-    console.log(payload)
-    if (payload.data && payload.data.progress) {
-  progress.value = parseInt(payload.data.progress, 10);
-}
-
+    console.log("Tüm mesajlar (filtrelenmeden):", payload);
+    // ASYNC İŞLEM YAPMAYIN! Direkt işleyin.
+    if (payload.topic === otp.value) {
+      try {
+        const data = JSON.parse(payload.notification?.body || "{}");
+        console.log("Alınan veri:", {
+          fileName: payload.notification?.title,
+          ...data
+        });
+      } catch (error) {
+        console.error("JSON parse hatası:", error);
+      }
+    }
   });
+};
+
+onMounted(() => {
+  listenToFirebaseMessages();
 });
 
 const fetchFiles = async () => {
