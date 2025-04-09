@@ -4,14 +4,17 @@ import FileIcon from '@/utils/FileIcon.vue';
 import { API_ENDPOINTS } from '@/utils/api';
 import { messaging, onMessage } from '@/utils/firebase';
 
-const otp = ref('74cmze');
+const otp = ref('');
 const files = ref([]);
 const progress = ref(0);
 
 
 onMessage(messaging, (payload) => {
-  console.log('Message received. ', payload);
-  // ...
+    console.log("Firebase mesajı alındı:", payload);
+    console.log(payload)
+    if (payload.data && payload.data.progress) {
+  progress.value = parseInt(payload.data.progress, 10);
+}
 });
 
 const fetchFiles = async () => {
