@@ -86,7 +86,7 @@ function handleFileUpload(event) {
   //     selectedFiles.value.push({ ...file, isUpload: false });
   //   }
   // });
-  selectedFiles.value = [...selectedFiles.value, ...newFiles]; 
+  selectedFiles.value = [...selectedFiles.value, ...newFiles];
   currentStep.value = 2; // Dosya önizleme adımına geç
   uploadFiles(newFiles);
 }
@@ -96,6 +96,8 @@ function handleDrop(event) {
   const files = event.dataTransfer.files;
   handleFileUpload({ target: { files } });
 }
+
+const chunkSize = 1024 * 1024;
 
 async function uploadFiles(filesToUpload) {
   if (filesToUpload.length === 0) return;
@@ -132,6 +134,7 @@ async function uploadFiles(filesToUpload) {
   // Dosyaları yüklemeye başla
   for (const file of filesToUpload) {
     const fileHash = await calculateSHA256(file);
+    const totalChunks = Math.ceil(file.size / chunkSize)
 
     // Hash kontrol isteği
     const hashCheckResponse = await fetch(API_ENDPOINTS.CHECK_FILE_HASH, {
@@ -143,60 +146,71 @@ async function uploadFiles(filesToUpload) {
     });
     const hashCheckData = await hashCheckResponse.json();
 
-    // Dosya yükleme işlemi için formData oluştur
-    const formData = new FormData();
-    if (hashCheckData.fileStatus[fileHash]) {
-      formData.append("files", file);
-      formData.append("fileHash", fileHash);
-    } else {
-      formData.append("fileName", file.name);
-      formData.append("fileHash", fileHash);
-    }
+    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+      const chunkStart = chunkIndex * chunkSize;
+      const chunkEnd = Math.min(chunkStart + chunkSize, file.size);
+      const chunk = file.slice(chunkStart, chunkEnd);
 
-    try {
-      const response = await axios.post(`${API_ENDPOINTS.UPLOAD_FILES}?otp=${otp}`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-        onUploadProgress: progressEvent => {
-          const totalBytes = progressEvent.total || 0;
-          const uploadedBytes = progressEvent.loaded || 0;
 
-          const uploadProgress = Math.round((uploadedBytes / totalBytes) * 100);
-          const uploadedMB = (uploadedBytes / (1024 * 1024)).toFixed(2);
-          const totalMB = (file.size / (1024 * 1024)).toFixed(2);
-
-          percentage.value[file.name] = {
-            uploadProgress,
-            uploadedMB,
-            totalMB,
-          };
-
-          console.log(`Dosya: ${file.name} - Yüzde: ${uploadProgress}%`);
-          try {
-            fetch(`${API_ENDPOINTS.SEND_PROGRESS}`,{
-              method: "POST",
-              headers:{
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                otp,
-                fileName: file.name,
-                uploadedMB,
-                totalMB,
-                progress: uploadProgress,
-              })
-            })
-          } catch (error) {
-            console.error("Firebase'e yükleme durumu gönderme hatası:", error);
-          }
-        },
-      });
-
-      if (response.data.success) {
-        console.log(`Dosya ${file.name} başarıyla yüklendi.`);
+      // Dosya yükleme işlemi için formData oluştur
+      const formData = new FormData();
+      if (hashCheckData.fileStatus[fileHash]) {
+        formData.append("chunk", chunk);
+        formData.append("files", file);
+        formData.append("fileHash", fileHash);
+        formData.append("chunkIndex", chunkIndex.toString());
+        formData.append("totalChunks", totalChunks.toString());
+        formData.append("otp", otp);
+      } else {
+        formData.append("fileName", file.name);
+        formData.append("fileHash", fileHash);
       }
-    } catch (error) {
-      console.error(`Dosya ${file.name} yüklenirken hata oluştu:`, error);
-      otpMessage.value = "Sunucu ile iletişimde bir sorun var.";
+
+      try {
+        const response = await axios.post(`${API_ENDPOINTS.UPLOAD_FILES}?otp=${otp}`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+          onUploadProgress: progressEvent => {
+            const totalBytes = progressEvent.total || 0;
+            const uploadedBytes = progressEvent.loaded || 0;
+
+            const uploadProgress = Math.round((uploadedBytes / totalBytes) * 100);
+            const uploadedMB = (uploadedBytes / (1024 * 1024)).toFixed(2);
+            const totalMB = (file.size / (1024 * 1024)).toFixed(2);
+
+            percentage.value[file.name] = {
+              uploadProgress,
+              uploadedMB,
+              totalMB,
+            };
+
+            console.log(`Dosya: ${file.name} - Yüzde: ${uploadProgress}%`);
+            try {
+              fetch(`${API_ENDPOINTS.SEND_PROGRESS}`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  otp,
+                  fileName: file.name,
+                  uploadedMB,
+                  totalMB,
+                  progress: uploadProgress,
+                })
+              })
+            } catch (error) {
+              console.error("Firebase'e yükleme durumu gönderme hatası:", error);
+            }
+          },
+        });
+
+        if (response.data.success) {
+          console.log(`Dosya ${file.name} başarıyla yüklendi.`);
+        }
+      } catch (error) {
+        console.error(`Dosya ${file.name} yüklenirken hata oluştu:`, error);
+        otpMessage.value = "Sunucu ile iletişimde bir sorun var.";
+      }
     }
   }
 }
@@ -281,7 +295,8 @@ async function uploadFiles(filesToUpload) {
                       class="ml-auto font-extrabold text-red-500 hover:text-red-700">✕</button>
                   </div>
                   <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
-                    <div :style="{ width: `${percentage[file.name]?.uploadProgress || 0}%` }" class="bg-blue-600 h-2 rounded-full">
+                    <div :style="{ width: `${percentage[file.name]?.uploadProgress || 0}%` }"
+                      class="bg-blue-600 h-2 rounded-full">
                     </div>
                   </div>
                   <span class="text-xs text-left mt-1">
@@ -311,7 +326,8 @@ async function uploadFiles(filesToUpload) {
           <p>Max files: 20 | Max file size: 2GB</p>
         </div>
         <div class="mt-4 flex justify-end space-x-3">
-          <button @click="goBackStep" class="px-4 py-1 border-2 border-red-600 text-red-600 rounded hover:bg-red-600 hover:text-white cursor-pointer">
+          <button @click="goBackStep"
+            class="px-4 py-1 border-2 border-red-600 text-red-600 rounded hover:bg-red-600 hover:text-white cursor-pointer">
             İptal Et
           </button>
         </div>

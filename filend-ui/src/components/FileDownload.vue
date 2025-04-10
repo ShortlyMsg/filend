@@ -9,7 +9,8 @@ const files = ref([]);
 const progress = ref(0);
 
 
-onMessage(messaging, (payload) => {
+onMessage(messaging.current, (payload) => {
+  console.log(messaging.current+ "ez")
     console.log("Firebase mesajı alındı:", payload);
     console.log(payload)
     if (payload.data && payload.data.progress) {
