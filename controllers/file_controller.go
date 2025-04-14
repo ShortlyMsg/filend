@@ -7,7 +7,10 @@ import (
 	"filend/config"
 	"filend/models"
 	"filend/services"
+	"fmt"
 	"log"
+	"os"
+	"strconv"
 
 	"io"
 	"net/http"
@@ -70,6 +73,9 @@ func UploadFile(c *gin.Context) {
 	fileName := c.PostForm("fileName")
 	fileHash := c.PostForm("fileHash")
 
+	chunkIndex := c.PostForm("chunkIndex")
+	totalChunks := c.PostForm("totalChunks")
+
 	var fileModel models.FileModel
 	err = config.DB.Where("otp = ?", otp).First(&fileModel).Error
 	if err != nil {
@@ -94,49 +100,93 @@ func UploadFile(c *gin.Context) {
 		}
 		defer uploadedFile.Close()
 
-		// Hashi oluştur
-		hash, err := GenerateFileHash(uploadedFile)
+		// Chunk'ı tmp klasörüne OTP_HASH_ChunkNum şeklinde kaydediyoruz
+		os.MkdirAll(fmt.Sprintf("tmp/%s", otp), os.ModePerm)
+		chunkPath := fmt.Sprintf("tmp/%s/%s_chunk%s", otp, fileHash, chunkIndex)
+		out, err := os.Create(chunkPath)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Dosya Hashi oluşturulamadı"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Chunk Yazılamadı: " + err.Error()})
 			return
 		}
+		_, err = io.Copy(out, uploadedFile)
+		out.Close()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Chunk yazılırken bir hata oluştu"})
+		}
 
-		var existingFile models.FileDetails
-		err = config.DB.Where("file_details.file_hash @> ? AND file_models.deleted_at IS NULL", hash).
-			Joins("JOIN file_models ON file_details.file_model_id = file_models.file_model_id").
-			First(&existingFile).Error
-		if err == nil {
-			log.Printf("3 if err==nil içi %s", fileHash)
-			// // Dosya zaten var, MinIO'ya yüklemiyoruz ama DB'ye kaydediyoruz
-			// if err := UpdateFileTimeByHash(fileHash); err != nil {
-			// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "UpdatedAt güncellenemedi"})
-			// 	return
-			// }
-			// log.Printf("4 oldu gibi")
-			// MinIO'ya hash ismiyle yükle
-		} else {
-			uploadedFile.Seek(0, io.SeekStart)
-			_, err = config.MinioClient.PutObject(c, "filend", hash, uploadedFile, file.Size, minio.PutObjectOptions{
-				ContentType: file.Header.Get("Content-Type"),
-			})
+		// Chunk Yüklenmesi Bitince Birleştir
+		tChunks, _ := strconv.Atoi(totalChunks)
+		cIndex, _ := strconv.Atoi(chunkIndex)
+
+		if cIndex+1 == tChunks {
+
+			mergedPath := fmt.Sprintf("tmp/%s/%s_merged", otp, fileHash)
+			mergedFile, err := os.Create(mergedPath)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "MinIO'ya yüklenemedi: " + err.Error()})
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Geçici birleştirme dosyası oluşturulamadı"})
+			}
+			defer mergedFile.Close()
+
+			for i := 0; i < tChunks; i++ {
+				chunkFilePath := fmt.Sprintf("tmp/%s/%s_chunk%d", otp, fileHash, i)
+				chunkFile, err := os.Open(chunkFilePath)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Chunk %d okunamadı", i)})
+				}
+				io.Copy(mergedFile, chunkFile)
+				chunkFile.Close()
+				os.Remove(chunkFilePath)
+			}
+
+			// Hashi oluştur
+			hash, err := GenerateFileHash(mergedFile)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Dosya Hashi oluşturulamadı"})
 				return
 			}
 
-			fileName = file.Filename
-		}
-	}
-	fileDetail := models.FileDetails{
-		FileDetailsID: uuid.New(),
-		FileName:      fileName,
-		FileHash:      fileHash,
-		FileModelID:   fileModel.FileModelID,
-	}
+			var existingFile models.FileDetails
+			err = config.DB.Where("file_details.file_hash @> ? AND file_models.deleted_at IS NULL", hash).
+				Joins("JOIN file_models ON file_details.file_model_id = file_models.file_model_id").
+				First(&existingFile).Error
+			if err == nil {
+				log.Printf("3 if err==nil içi %s", fileHash)
+				// // Dosya zaten var, MinIO'ya yüklemiyoruz ama DB'ye kaydediyoruz
+				// if err := UpdateFileTimeByHash(fileHash); err != nil {
+				// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "UpdatedAt güncellenemedi"})
+				// 	return
+				// }
+				// log.Printf("4 oldu gibi")
+				// MinIO'ya hash ismiyle yükle
+			} else {
+				mergedFile.Seek(0, io.SeekStart)
+				fileStat, _ := mergedFile.Stat()
+				_, err = config.MinioClient.PutObject(c, "filend", hash, mergedFile, fileStat.Size(), minio.PutObjectOptions{
+					ContentType: file.Header.Get("Content-Type"),
+				})
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "MinIO'ya yüklenemedi: " + err.Error()})
+					return
+				}
 
-	if err := config.DB.Create(&fileDetail).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Veritabanına kaydedilemedi"})
-		return
+				fileName = file.Filename
+			}
+			fileDetail := models.FileDetails{
+				FileDetailsID: uuid.New(),
+				FileName:      fileName,
+				FileHash:      fileHash,
+				FileModelID:   fileModel.FileModelID,
+			}
+
+			if err := config.DB.Create(&fileDetail).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Veritabanına kaydedilemedi"})
+				return
+			}
+
+			// Geçici Birleşmiş Dosyasyı Sil
+			os.Remove(mergedPath)
+		}
+
 	}
 
 	c.JSON(http.StatusOK, gin.H{"otp": otp, "fileName": fileName})
