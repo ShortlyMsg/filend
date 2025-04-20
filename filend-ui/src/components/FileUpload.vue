@@ -97,7 +97,7 @@ function handleDrop(event) {
   handleFileUpload({ target: { files } });
 }
 
-const chunkSize = 1024 * 1024; // Chunk Boyutu 1 MB 
+const chunkSize = 1024 * 1024 * 2; // Chunk Boyutu 1 MB 
 
 async function uploadFiles(filesToUpload) {
   if (filesToUpload.length === 0) return;
@@ -160,7 +160,7 @@ async function uploadFiles(filesToUpload) {
       const formData = new FormData();
       if (hashCheckData.fileStatus[fileHash]) {
         formData.append("chunk", chunk);
-        formData.append("files", file);
+        formData.append("files", chunk, file.name);
         formData.append("fileHash", fileHash);
         formData.append("chunkIndex", chunkIndex.toString());
         formData.append("totalChunks", totalChunks.toString());
