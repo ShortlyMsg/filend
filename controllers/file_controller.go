@@ -4,6 +4,7 @@ import (
 	//"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"filend/config"
 	"filend/models"
 	"filend/services"
@@ -19,6 +20,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
+	"gorm.io/gorm"
 )
 
 func validateSecurityCode(code string) bool {
@@ -100,6 +102,37 @@ func UploadFile(c *gin.Context) {
 		}
 		defer uploadedFile.Close()
 
+		if fileName == "" {
+			fileName = file.Filename
+		}
+
+		// ilk chunk yüklendiği gibi dbye kaydedilmiş oluyor ve sorgularken gözüküyor.
+		if chunkIndex == "0" {
+			// Aynı fileModelID ve fileHash ile zaten kayıt var mı kontrol et
+			var existingDetails models.FileDetails
+			err := config.DB.
+				Where("file_model_id = ? AND file_hash = ?", fileModel.FileModelID, fileHash).
+				First(&existingDetails).Error
+
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				// Kayıt yoksa oluştur
+				fileDetail := models.FileDetails{
+					FileDetailsID: uuid.New(),
+					FileName:      fileName,
+					FileHash:      fileHash,
+					FileModelID:   fileModel.FileModelID,
+				}
+
+				if err := config.DB.Create(&fileDetail).Error; err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "FileDetails DB kaydı yapılamadı"})
+					return
+				}
+			} else if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "FileDetails kontrol hatası"})
+				return
+			}
+		}
+
 		// Chunk'ı tmp klasörüne OTP_HASH_ChunkNum şeklinde kaydediyoruz
 		os.MkdirAll(fmt.Sprintf("tmp/%s", otp), os.ModePerm)
 		chunkPath := fmt.Sprintf("tmp/%s/%s_chunk%s", otp, fileHash, chunkIndex)
@@ -171,17 +204,17 @@ func UploadFile(c *gin.Context) {
 
 				fileName = file.Filename
 			}
-			fileDetail := models.FileDetails{
-				FileDetailsID: uuid.New(),
-				FileName:      fileName,
-				FileHash:      fileHash,
-				FileModelID:   fileModel.FileModelID,
-			}
+			// fileDetail := models.FileDetails{
+			// 	FileDetailsID: uuid.New(),
+			// 	FileName:      fileName,
+			// 	FileHash:      fileHash,
+			// 	FileModelID:   fileModel.FileModelID,
+			// }
 
-			if err := config.DB.Create(&fileDetail).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Veritabanına kaydedilemedi"})
-				return
-			}
+			// if err := config.DB.Create(&fileDetail).Error; err != nil {
+			// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Veritabanına kaydedilemedi"})
+			// 	return
+			// }
 
 			// Geçici Birleşmiş Dosyasyı Sil
 			os.Remove(mergedPath)
