@@ -210,17 +210,6 @@ func UploadFile(c *gin.Context) {
 
 			fileName = file.Filename
 		}
-		// fileDetail := models.FileDetails{
-		// 	FileDetailsID: uuid.New(),
-		// 	FileName:      fileName,
-		// 	FileHash:      fileHash,
-		// 	FileModelID:   fileModel.FileModelID,
-		// }
-
-		// if err := config.DB.Create(&fileDetail).Error; err != nil {
-		// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Veritabanına kaydedilemedi"})
-		// 	return
-		// }
 
 		// Geçici Birleşmiş Dosyasyı Sil
 		os.Remove(mergedPath)

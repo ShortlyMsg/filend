@@ -88,7 +88,7 @@ function handleFileUpload(event) {
   // });
   selectedFiles.value = [...selectedFiles.value, ...newFiles];
   currentStep.value = 2; // Dosya önizleme adımına geç
-  uploadFiles(newFiles);
+  addFilesToQueue(newFiles);
 }
 
 function handleDrop(event) {
@@ -97,10 +97,32 @@ function handleDrop(event) {
   handleFileUpload({ target: { files } });
 }
 
+// Sırayla Yükleme Func Kısmı
+const uploadQueue = [];
+let isUploading = false;
+
+function addFilesToQueue(files) {
+  uploadQueue.push(...files);
+  processQueue(); // Yeni dosya gelince sırayı çalıştır
+}
+
+async function processQueue() {
+  if (isUploading || uploadQueue.length === 0) return;
+
+  isUploading = true;
+
+  const file = uploadQueue.shift(); // ilk dosyayı sıradan al
+  await uploadFiles(file); // Bu dosyayı yükle
+  isUploading = false;
+
+  processQueue(); // Sonra Sıradakine geç
+}
+
 const chunkSize = 1024 * 1024 * 2; // Chunk Boyutu 1 MB 
 
-async function uploadFiles(filesToUpload) {
-  if (filesToUpload.length === 0) return;
+async function uploadFiles(file) {
+  const fileHash = await calculateSHA256(file);
+  const totalChunks = Math.ceil(file.size / chunkSize)
 
   // İlk Otp Kodunu Oluştur
   let otp = otpMessage.value;
@@ -133,84 +155,81 @@ async function uploadFiles(filesToUpload) {
   }
 
   // Oluşturulan OTP ye Dosyaları yüklemeye başla
-  for (const file of filesToUpload) {
-    const fileHash = await calculateSHA256(file);
-    const totalChunks = Math.ceil(file.size / chunkSize)
 
-    // Dosya Daha Önce Yüklenmiş mi? Hash kontrol isteği
-    const hashCheckResponse = await fetch(API_ENDPOINTS.CHECK_FILE_HASH, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ fileHash }),
-    });
-    const hashCheckData = await hashCheckResponse.json();
+  // Dosya Daha Önce Yüklenmiş mi? Hash kontrol isteği
+  const hashCheckResponse = await fetch(API_ENDPOINTS.CHECK_FILE_HASH, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ fileHash }),
+  });
+  const hashCheckData = await hashCheckResponse.json();
 
-    let uploadedSize = 0;
+  let uploadedSize = 0;
 
-    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-      const chunkStart = chunkIndex * chunkSize;
-      const chunkEnd = Math.min(chunkStart + chunkSize, file.size);
-      const chunk = file.slice(chunkStart, chunkEnd);
+  for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+    const chunkStart = chunkIndex * chunkSize;
+    const chunkEnd = Math.min(chunkStart + chunkSize, file.size);
+    const chunk = file.slice(chunkStart, chunkEnd);
 
 
-      // Dosya yükleme işlemi için formData oluştur ve 
-      // CheckFileHashten gelen yanıta göre Hangi bilgilerin Back-ende gideceğine karar ver.
-      const formData = new FormData();
-      if (hashCheckData.fileStatus[fileHash]) {
-        formData.append("chunk", chunk);
-        formData.append("files", chunk, file.name);
-        formData.append("fileHash", fileHash);
-        formData.append("chunkIndex", chunkIndex.toString());
-        formData.append("totalChunks", totalChunks.toString());
-        formData.append("otp", otp);
-      } else {
-        formData.append("fileName", file.name);
-        formData.append("fileHash", fileHash);
-      }
+    // Dosya yükleme işlemi için formData oluştur ve 
+    // CheckFileHashten gelen yanıta göre Hangi bilgilerin Back-ende gideceğine karar ver.
+    const formData = new FormData();
+    if (hashCheckData.fileStatus[fileHash]) {
+      formData.append("chunk", chunk);
+      formData.append("files", chunk, file.name);
+      formData.append("fileHash", fileHash);
+      formData.append("chunkIndex", chunkIndex.toString());
+      formData.append("totalChunks", totalChunks.toString());
+      formData.append("otp", otp);
+    } else {
+      formData.append("fileName", file.name);
+      formData.append("fileHash", fileHash);
+    }
 
-      try {
-        await axios.post(`${API_ENDPOINTS.UPLOAD_FILES}?otp=${otp}`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+    try {
+      await axios.post(`${API_ENDPOINTS.UPLOAD_FILES}?otp=${otp}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
-        uploadedSize += chunk.size; // Her chunk sonrası toplamı arttır
+      uploadedSize += chunk.size; // Her chunk sonrası toplamı arttır
 
-        const uploadProgress = Math.round((uploadedSize / file.size) * 100);
-        const uploadedMB = (uploadedSize / (1024 * 1024)).toFixed(2);
-        const totalMB = (file.size / (1024 * 1024)).toFixed(2);
+      const uploadProgress = Math.round((uploadedSize / file.size) * 100);
+      const uploadedMB = (uploadedSize / (1024 * 1024)).toFixed(2);
+      const totalMB = (file.size / (1024 * 1024)).toFixed(2);
 
-        percentage.value[file.name] = {
-          uploadProgress,
+      percentage.value[file.name] = {
+        uploadProgress,
+        uploadedMB,
+        totalMB,
+      };
+
+      // Firebase veya başka yere progres gönder
+      await fetch(`${API_ENDPOINTS.SEND_PROGRESS}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          otp,
+          fileName: file.name,
           uploadedMB,
           totalMB,
-        };
+          progress: uploadProgress,
+        }),
+      });
 
-        // Firebase veya başka yere progres gönder
-        await fetch(`${API_ENDPOINTS.SEND_PROGRESS}`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            otp,
-            fileName: file.name,
-            uploadedMB,
-            totalMB,
-            progress: uploadProgress,
-          }),
-        });
+      console.log(`Dosya: ${file.name} - Chunk ${chunkIndex}`);
+      console.log(`Dosya: ${file.name} - Yüzde: ${uploadProgress}%`);
 
-        console.log(`Dosya: ${file.name} - Chunk ${chunkIndex}`);
-        console.log(`Dosya: ${file.name} - Yüzde: ${uploadProgress}%`);
-
-      } catch (error) {
-        console.error(`Dosya ${file.name} yüklenirken hata oluştu:`, error);
-        otpMessage.value = "Sunucu ile iletişimde bir sorun var.";
-      }
+    } catch (error) {
+      console.error(`Dosya ${file.name} yüklenirken hata oluştu:`, error);
+      otpMessage.value = "Sunucu ile iletişimde bir sorun var.";
     }
   }
+
 }
 
 </script>
