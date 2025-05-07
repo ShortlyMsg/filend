@@ -17,6 +17,7 @@ func SetupRouter() *gin.Engine {
 	router.POST("/checkFileHash", controllers.CheckFileHash)
 	router.POST("/generateOtp", controllers.GenerateOTP)
 	router.POST("/sendProgress", controllers.SendUploadProgress)
+	router.POST("/subscribeToken", controllers.SubscribeTokenToTopic)
 
 	return router
 }

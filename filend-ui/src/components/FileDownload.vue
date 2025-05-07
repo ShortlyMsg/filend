@@ -1,22 +1,62 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import FileIcon from '@/utils/FileIcon.vue';
 import { API_ENDPOINTS } from '@/utils/api';
-import { messaging, onMessage } from '@/utils/firebase';
+import { messaging, getToken, onMessage } from '@/utils/firebase';
 
 const otp = ref('');
 const files = ref([]);
+const message = ref('');
 const progress = ref(0);
+const totalMB = ref(0);
 
+const subscribeToTopic = async () => {
+  try {
+    const currentToken = await getToken(messaging, {
+      vapidKey: 'Vapid-key' //VAPID key
+    });
 
-onMessage(messaging.current, (payload) => {
-  console.log(messaging.current+ "ez")
-    console.log("Firebase mesajı alındı:", payload);
-    console.log(payload)
-    if (payload.data && payload.data.progress) {
-  progress.value = parseInt(payload.data.progress, 10);
+    if (currentToken) {
+      const response = await fetch(API_ENDPOINTS.SUBSCRIBE_TOKEN, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          token: currentToken,
+          topic: otp.value
+        })
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        alert('Abonelik başarılı')
+        console.log("Yanıt:", result)
+      } else {
+        alert('Abonelik başarısız')
+        console.error('Hata:', await response.text())
+      }
+    } else {
+      alert('Token alınamadı. Bildirim izni verildi mi?')
+    }
+  } catch (err) {
+    console.error('Hata:', err)
+  }
 }
-});
+
+onMounted(() => {
+  onMessage(messaging, (payload) => {
+    console.log("Firebase mesajı alındı:", payload)
+    if (payload?.data) {
+      message.value = JSON.stringify(payload.data)
+      if (payload.data.progress) {
+        progress.value = parseInt(payload.data.progress, 10)
+        totalMB.value = payload.data.totalMB || 0;
+        console.log(payload) 
+      }
+    }
+  })
+})
 
 const fetchFiles = async () => {
   if (!otp.value) {
@@ -40,6 +80,7 @@ const fetchFiles = async () => {
         name: fileName,
         hash: data.hashes[index]
       }));
+      subscribeToTopic(); // Burada tek tuşla çağırmış oluyoruz artık
     } else {
       files.value = [];
       alert('Dosya bulunamadı.');
@@ -92,13 +133,16 @@ const downloadFile = async (index) => {
             <div class="flex flex-col ml-4 w-full">
               <div class="flex items-center">
                 <span class="text-sm">{{ file.name }}</span>
-                <img src="@/assets/download.svg" alt="Download" @click="downloadFile(index)"
-                  class="ml-auto cursor-pointer w-6 h-6" />
+                <img src="@/assets/download.svg" alt="Download" 
+                  @click="progress === 100 ? downloadFile(index) : null"
+                  :disabled="progress !== 100"
+                  class="ml-auto cursor-pointer w-6 h-6" 
+                  :class="{'opacity-50 cursor-not-allowed': progress !== 100}"/>
               </div>
               <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
                 <div class="bg-green-400 h-2 rounded-full" :style="{ width: progress + '%' }"></div>
               </div>
-              <div class="text-xs text-right mt-1">{{ progress }} MB</div>
+              <div class="text-xs text-right mt-1">{{ totalMB }} MB</div>
             </div>
           </div>
         </div>
@@ -109,7 +153,8 @@ const downloadFile = async (index) => {
           <input type="text" v-model="otp" class="border-2 border-dashed border-gray-400 p-2 rounded"
             placeholder="OTP kodunu buraya girin" />
         </div>
-        <button @click="fetchFiles" class="px-4 py-1 border-2 border-green-500 text-green-600 rounded hover:bg-green-500 hover:text-white cursor-pointer">
+        <button @click="fetchFiles"
+          class="px-4 py-1 border-2 border-green-500 text-green-600 rounded hover:bg-green-500 hover:text-white cursor-pointer">
           Listele
         </button>
       </div>

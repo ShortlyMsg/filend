@@ -15,7 +15,7 @@ importers:
         specifier: ^3.8.3
         version: 3.38.1
       firebase:
-        specifier: ^11.3.0
+        specifier: ^11.4.0
         version: 11.4.0
       vue:
         specifier: ^3.5.13
@@ -26,6 +26,9 @@ importers:
       vue-template-compiler:
         specifier: ^2.7.16
         version: 2.7.16
+      vuefire:
+        specifier: ^3.2.1
+        version: 3.2.1(firebase@11.4.0)(vue@3.5.13)
     devDependencies:
       '@babel/core':
         specifier: ^7.12.16
@@ -4017,6 +4020,17 @@ packages:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
     engines: {node: '>= 0.8'}
 
+  vue-demi@0.14.10:
+    resolution: {integrity: sha512-nMZBOwuzabUO0nLgIcc6rycZEebF6eeUfaiQx9+WSk8e29IbLvPU9feI6tqW4kTo3hvoYAJkMh8n8D0fuISphg==}
+    engines: {node: '>=12'}
+    hasBin: true
+    peerDependencies:
+      '@vue/composition-api': ^1.0.0-rc.1
+      vue: ^3.0.0-0 || ^2.6.0
+    peerDependenciesMeta:
+      '@vue/composition-api':
+        optional: true
+
   vue-eslint-parser@8.3.0:
     resolution: {integrity: sha512-dzHGG3+sYwSf6zFBa0Gi9ZDshD7+ad14DGOdTLjruRVgZXe2J+DcZ9iUhyR48z5g1PqRa20yt3Njna/veLJL/g==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
@@ -4077,6 +4091,22 @@ packages:
       typescript: '*'
     peerDependenciesMeta:
       typescript:
+        optional: true
+
+  vuefire@3.2.1:
+    resolution: {integrity: sha512-APj/iFdEec9kO71Lsiv/7opo9xL0D43l7cjwh84rJ5WMzrmpi9z774zzN+PPhBpD6bXyueLcfg0VlOUhI9/jUA==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@vue/composition-api': '*'
+      consola: ^3.2.3
+      firebase: ^9.0.0 || ^10.0.0 || ^11.0.0
+      vue: ^2.7.0 || ^3.2.0
+    peerDependenciesMeta:
+      '@vue/composition-api':
+        optional: true
+      consola:
+        optional: true
+      firebase:
         optional: true
 
   watchpack@2.4.2:
@@ -8747,6 +8777,10 @@ snapshots:
 
   vary@1.1.2: {}
 
+  vue-demi@0.14.10(vue@3.5.13):
+    dependencies:
+      vue: 3.5.13
+
   vue-eslint-parser@8.3.0(eslint@7.32.0):
     dependencies:
       debug: 4.3.7
@@ -8863,6 +8897,13 @@ snapshots:
       '@vue/runtime-dom': 3.5.13
       '@vue/server-renderer': 3.5.13(vue@3.5.13)
       '@vue/shared': 3.5.13
+
+  vuefire@3.2.1(firebase@11.4.0)(vue@3.5.13):
+    dependencies:
+      vue: 3.5.13
+      vue-demi: 0.14.10(vue@3.5.13)
+    optionalDependencies:
+      firebase: 11.4.0
 
   watchpack@2.4.2:
     dependencies:

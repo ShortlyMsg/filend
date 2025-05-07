@@ -7,6 +7,7 @@ export const API_ENDPOINTS = {
   DOWNLOAD_FILES: `${BASE_URL}/download`,
   GENERATE_OTP: `${BASE_URL}/generateOtp`,
   SEND_PROGRESS: `${BASE_URL}/sendProgress`,
+  SUBSCRIBE_TOKEN: `${BASE_URL}/subscribeToken`,
 };
 
 export function setBaseUrl(newBaseUrl) {
