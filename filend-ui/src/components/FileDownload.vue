@@ -13,7 +13,7 @@ const totalMB = ref(0);
 const subscribeToTopic = async () => {
   try {
     const currentToken = await getToken(messaging, {
-      vapidKey: 'Vapid-key' //VAPID key
+      vapidKey: 'BIpvaBgdH8WYgUeslKtuJl997WM-sC7YkUXN1avHAFnHhn4n6Uh05bcJteFhbTFR27_8iioPJYbXehHSnwm0Bro' //VAPID key
     });
 
     if (currentToken) {
