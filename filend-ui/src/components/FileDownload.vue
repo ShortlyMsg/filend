@@ -7,8 +7,6 @@ import { messaging, getToken, onMessage } from '@/utils/firebase';
 const otp = ref('');
 const files = ref([]);
 const message = ref('');
-const progress = ref(0);
-const totalMB = ref(0);
 
 const subscribeToTopic = async () => {
   try {
@@ -30,7 +28,6 @@ const subscribeToTopic = async () => {
 
       if (response.ok) {
         const result = await response.json()
-        alert('Abonelik başarılı')
         console.log("Yanıt:", result)
       } else {
         alert('Abonelik başarısız')
@@ -49,10 +46,24 @@ onMounted(() => {
     console.log("Firebase mesajı alındı:", payload)
     if (payload?.data) {
       message.value = JSON.stringify(payload.data)
-      if (payload.data.progress) {
-        progress.value = parseInt(payload.data.progress, 10)
-        totalMB.value = payload.data.totalMB || 0;
-        console.log(payload) 
+
+      const fileName = payload.data.fileName;
+      const progressValue = parseInt(payload.data.progress, 10);
+      const total = payload.data.totalMB || 0;
+
+      const fileToUpdate = files.value.find(file => file.name === fileName);
+      if (fileToUpdate) {
+        fileToUpdate.progress = progressValue;
+        fileToUpdate.totalMB = total;
+
+        files.value = [...files.value];
+      } else {
+        files.value.push({
+          name: fileName,
+          hash: null,
+          progress: progressValue,
+          totalMB: total
+        });
       }
     }
   })
@@ -76,10 +87,17 @@ const fetchFiles = async () => {
     const data = await response.json();
 
     if (data.files && data.files.length > 0 && data.hashes && data.hashes.length) {
-      files.value = data.files.map((fileName, index) => ({
-        name: fileName,
-        hash: data.hashes[index]
-      }));
+      data.files.forEach((fileName, index) => {
+        const existingFile = files.value.find(f => f.name === fileName);
+        if (!existingFile) {
+          files.value.push({
+            name: fileName,
+            hash: data.hashes[index],
+            progress: 0,
+            totalMB: 0
+          });
+        }
+      });
       subscribeToTopic(); // Burada tek tuşla çağırmış oluyoruz artık
     } else {
       files.value = [];
@@ -133,16 +151,15 @@ const downloadFile = async (index) => {
             <div class="flex flex-col ml-4 w-full">
               <div class="flex items-center">
                 <span class="text-sm">{{ file.name }}</span>
-                <img src="@/assets/download.svg" alt="Download" 
-                  @click="progress === 100 ? downloadFile(index) : null"
-                  :disabled="progress !== 100"
-                  class="ml-auto cursor-pointer w-6 h-6" 
-                  :class="{'opacity-50 cursor-not-allowed': progress !== 100}"/>
+                <img src="@/assets/download.svg" alt="Download"
+                  @click="file.progress === 100 ? downloadFile(index) : null" :disabled="file.progress !== 100"
+                  class="ml-auto cursor-pointer w-6 h-6"
+                  :class="{ 'opacity-50 cursor-not-allowed': file.progress !== 100 }" />
               </div>
               <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
-                <div class="bg-green-400 h-2 rounded-full" :style="{ width: progress + '%' }"></div>
+                <div class="bg-green-400 h-2 rounded-full" :style="{ width: file.progress + '%' }"></div>
               </div>
-              <div class="text-xs text-right mt-1">{{ totalMB }} MB</div>
+              <div class="text-xs text-right mt-1">{{ file.totalMB }} MB</div>
             </div>
           </div>
         </div>
