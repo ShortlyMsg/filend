@@ -61,6 +61,8 @@ onMounted(() => {
         files.value.push({
           name: fileName,
           hash: null,
+          fileSize: 0,
+          isUploaded: false,
           progress: progressValue,
           totalMB: total
         });
@@ -86,18 +88,14 @@ const fetchFiles = async () => {
 
     const data = await response.json();
 
-    if (data.files && data.files.length > 0 && data.hashes && data.hashes.length) {
-      data.files.forEach((fileName, index) => {
-        const existingFile = files.value.find(f => f.name === fileName);
-        if (!existingFile) {
-          files.value.push({
-            name: fileName,
-            hash: data.hashes[index],
-            progress: 0,
-            totalMB: 0
-          });
-        }
-      });
+    if (data.files && data.files.length > 0) {
+      files.value = data.files.map(f => ({
+        name: f.fileName,
+        hash: f.fileHash,
+        totalMB: (f.fileSize / 1024 / 1024).toFixed(2),
+        uploaded: f.isUploaded,
+        progress: f.isUploaded ? 100 : 0,
+      }));
       subscribeToTopic(); // Burada tek tuşla çağırmış oluyoruz artık
     } else {
       files.value = [];

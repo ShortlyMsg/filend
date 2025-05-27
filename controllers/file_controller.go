@@ -125,6 +125,8 @@ func UploadFile(c *gin.Context) {
 				FileDetailsID: uuid.New(),
 				FileName:      fileName,
 				FileHash:      fileHash,
+				FileSize:      0,
+				IsUploaded:    false,
 				FileModelID:   fileModel.FileModelID,
 			}
 
@@ -176,6 +178,10 @@ func UploadFile(c *gin.Context) {
 			os.Remove(chunkFilePath)
 		}
 
+		mergedFile.Seek(0, io.SeekStart)
+		fileStat, _ := mergedFile.Stat()
+		fileSize := fileStat.Size()
+
 		// Hashi oluştur
 		mergedFile.Seek(0, io.SeekStart)
 		hash, err := GenerateFileHash(mergedFile)
@@ -209,6 +215,17 @@ func UploadFile(c *gin.Context) {
 			}
 
 			fileName = file.Filename
+		}
+
+		err = config.DB.Model(&models.FileDetails{}).
+			Where("file_model_id = ? AND file_hash = ?", fileModel.FileModelID, fileHash).
+			Updates(map[string]interface{}{
+				"file_size":   fileSize,
+				"is_uploaded": true,
+			}).Error
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "FileDetails güncellenemedi"})
+			return
 		}
 
 		// Geçici Birleşmiş Dosyasyı Sil
@@ -307,14 +324,24 @@ func GetAllFiles(c *gin.Context) {
 		return
 	}
 
-	var fileNames []string
-	var fileHashes []string
-	for _, detail := range fileDetails {
-		fileNames = append(fileNames, detail.FileName)
-		fileHashes = append(fileHashes, detail.FileHash)
+	type FileInfo struct {
+		FileName   string `json:"fileName"`
+		FileHash   string `json:"fileHash"`
+		FileSize   int64  `json:"fileSize"`
+		IsUploaded bool   `json:"isUploaded"`
 	}
 
-	c.JSON(http.StatusOK, gin.H{"files": fileNames, "hashes": fileHashes})
+	var files []FileInfo
+	for _, detail := range fileDetails {
+		files = append(files, FileInfo{
+			FileName:   detail.FileName,
+			FileHash:   detail.FileHash,
+			FileSize:   detail.FileSize,
+			IsUploaded: detail.IsUploaded,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"files": files})
 }
 
 func CheckFileHash(c *gin.Context) {
