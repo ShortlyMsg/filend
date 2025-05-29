@@ -165,7 +165,6 @@ func UploadFile(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Geçici birleştirme dosyası oluşturulamadı"})
 		}
-		defer mergedFile.Close()
 
 		for i := 0; i < tChunks; i++ {
 			chunkFilePath := fmt.Sprintf("tmp/%s/%s_chunk%d", otp, fileHash, i)
@@ -228,8 +227,12 @@ func UploadFile(c *gin.Context) {
 			return
 		}
 
-		// Geçici Birleşmiş Dosyasyı Sil
-		os.Remove(mergedPath)
+		// Geçici Birleşmiş Dosyayı Sil
+		mergedFile.Close()
+		if err := os.Remove(mergedPath); err != nil {
+			log.Println("Birleştirilmiş dosya silinemedi:", err)
+		}
+		os.Remove(fmt.Sprintf("tmp/%s", otp))
 	}
 
 	c.JSON(http.StatusOK, gin.H{"otp": otp, "fileName": fileName})
