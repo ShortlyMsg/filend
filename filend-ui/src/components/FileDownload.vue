@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onUnmounted } from 'vue';
 import FileIcon from '@/utils/FileIcon.vue';
 import { API_ENDPOINTS } from '@/utils/api';
 import { messaging, getToken, onMessage } from '@/utils/firebase';
@@ -7,6 +7,7 @@ import { messaging, getToken, onMessage } from '@/utils/firebase';
 const otp = ref('');
 const files = ref([]);
 const message = ref('');
+const unsubscribe = ref(null);
 
 const subscribeToTopic = async () => {
   try {
@@ -27,8 +28,35 @@ const subscribeToTopic = async () => {
       })
 
       if (response.ok) {
-        const result = await response.json()
-        console.log("Yanıt:", result)
+        // const result = await response.json()
+        // console.log("Yanıt:", result)
+        if (!unsubscribe.value) {
+          unsubscribe.value = onMessage(messaging, (payload) => {
+            //console.log("Firebase mesajı alındı:", payload);
+            if (payload?.data) {
+              message.value = JSON.stringify(payload.data);
+              const fileName = payload.data.fileName;
+              const progressValue = parseInt(payload.data.progress, 10);
+              const total = payload.data.totalMB || 0;
+
+              const fileToUpdate = files.value.find(file => file.name === fileName);
+              if (fileToUpdate) {
+                fileToUpdate.progress = progressValue;
+                fileToUpdate.totalMB = total;
+                files.value = [...files.value];
+              } else {
+                files.value.push({
+                  name: fileName,
+                  hash: null,
+                  fileSize: 0,
+                  isUploaded: false,
+                  progress: progressValue,
+                  totalMB: total
+                });
+              }
+            }
+          });
+        }
       } else {
         alert('Abonelik başarısız')
         console.error('Hata:', await response.text())
@@ -41,35 +69,13 @@ const subscribeToTopic = async () => {
   }
 }
 
-onMounted(() => {
-  onMessage(messaging, (payload) => {
-    console.log("Firebase mesajı alındı:", payload)
-    if (payload?.data) {
-      message.value = JSON.stringify(payload.data)
-
-      const fileName = payload.data.fileName;
-      const progressValue = parseInt(payload.data.progress, 10);
-      const total = payload.data.totalMB || 0;
-
-      const fileToUpdate = files.value.find(file => file.name === fileName);
-      if (fileToUpdate) {
-        fileToUpdate.progress = progressValue;
-        fileToUpdate.totalMB = total;
-
-        files.value = [...files.value];
-      } else {
-        files.value.push({
-          name: fileName,
-          hash: null,
-          fileSize: 0,
-          isUploaded: false,
-          progress: progressValue,
-          totalMB: total
-        });
-      }
-    }
-  })
-})
+onUnmounted(() => {
+  if (unsubscribe.value) {
+    unsubscribe.value(); // Aboneliği iptal et
+    unsubscribe.value = null;
+    //console.log('Firebase mesaj aboneliği iptal edildi.');
+  }
+});
 
 const fetchFiles = async () => {
   if (!otp.value) {
