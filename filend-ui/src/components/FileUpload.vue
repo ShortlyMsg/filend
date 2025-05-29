@@ -230,7 +230,6 @@ async function uploadFiles(file) {
           otp,
           fileName: file.name,
           uploadedMB,
-          totalMB,
           progress: uploadProgress,
         }),
       });

@@ -14,7 +14,6 @@ import (
 type UploadProgress struct {
 	Otp      string `json:"otp"`
 	FileName string `json:"fileName"`
-	TotalMB  string `json:"totalMB"`
 	Progress int    `json:"progress"`
 }
 
@@ -32,7 +31,6 @@ func SendUploadProgress(c *gin.Context) {
 		Topic: progress.Otp,
 		Data: map[string]string{
 			"fileName": progress.FileName,
-			"totalMB":  progress.TotalMB,
 			"progress": strconv.Itoa(progress.Progress),
 		},
 	}
