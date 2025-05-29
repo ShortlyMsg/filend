@@ -36,14 +36,15 @@ function shareViaTelegram() {
 }
 
 function goBackStep() {
+  window.location.reload();
   if (currentStep.value > 1) {
     currentStep.value--;
   }
 }
 
-function removeFile(index) {
-  selectedFiles.value.splice(index, 1);
-}
+// function removeFile(index) {
+//   selectedFiles.value.splice(index, 1);
+// }
 
 async function calculateSHA256(file) {
   const arrayBuffer = await file.arrayBuffer();
@@ -53,39 +54,52 @@ async function calculateSHA256(file) {
   return hashHex;
 }
 
-// function validateFiles(files, selectedFiles) {
-//   const maxFileLimit = 20;
-//   const maxTotalSize = 2 * 1024 * 1024 * 1024; // 2GB
+function validateFiles(files, selectedFiles) {
+  const maxFileLimit = 20;
+  const maxTotalSize = 2 * 1024 * 1024 * 1024; // 2GB
 
-//   const filesArray = Array.from(files);
+  const filesArray = Array.from(files);
 
-//   if (selectedFiles.length + filesArray.length > maxFileLimit) {
-//     return "Maksimum dosya limiti aşıldı.";
-//   }
+  // Dosya sayısı kontrolü
+  if (selectedFiles.length + filesArray.length > maxFileLimit) {
+    return "Maksimum dosya limiti aşıldı. En fazla 20 dosya yükleyebilirsiniz.";
+  }
 
-//   const totalSize = selectedFiles.reduce((acc, file) => acc + file.size, 0)
-//     + files.reduce((acc, file) => acc + file.size, 0);
-//   if (totalSize > maxTotalSize) {
-//     return "Toplam dosya boyutu 2 GB'ı geçemez.";
-//   }
+  // Toplam dosya boyutu kontrolü
+  const currentTotalSize = selectedFiles.reduce((acc, file) => acc + file.size, 0);
+  const newFilesSize = filesArray.reduce((acc, file) => acc + file.size, 0);
+  const totalSize = currentTotalSize + newFilesSize;
+  
+  if (totalSize > maxTotalSize) {
+    return "Toplam dosya boyutu 2 GB'ı geçemez.";
+  }
 
-//   return null; // Geçerli dosyalar
-// }
+  return null; // Geçerli dosyalar
+}
 
 function handleFileUpload(event) {
   const files = event.target.files;
   const newFiles = Array.from(files);
 
-  // const errorMessage = validateFiles(newFiles, selectedFiles.value);
-  // if (errorMessage) {
-  //   alert(errorMessage);
-  //   return;
-  // }
-  // newFiles.forEach(file => {
-  //   if (!selectedFiles.value.some(selectedFile => selectedFile.name === file.name)) {
-  //     selectedFiles.value.push({ ...file, isUpload: false });
-  //   }
-  // });
+  // Dosya doğrulaması
+  const errorMessage = validateFiles(newFiles, selectedFiles.value);
+  if (errorMessage) {
+    alert(errorMessage);
+    event.target.value = ''; // Input'u temizle
+    return;
+  }
+
+  // Aynı isimli dosyaları kontrol et ve sadece yeni dosyaları ekle
+  const uniqueNewFiles = newFiles.filter(file => 
+    !selectedFiles.value.some(selectedFile => selectedFile.name === file.name)
+  );
+
+  if (uniqueNewFiles.length === 0) {
+    alert("Seçilen dosyalar zaten mevcut.");
+    event.target.value = '';
+    return;
+  }
+
   selectedFiles.value = [...selectedFiles.value, ...newFiles];
   currentStep.value = 2; // Dosya önizleme adımına geç
   addFilesToQueue(newFiles);
@@ -221,8 +235,8 @@ async function uploadFiles(file) {
         }),
       });
 
-      console.log(`Dosya: ${file.name} - Chunk ${chunkIndex}`);
-      console.log(`Dosya: ${file.name} - Yüzde: ${uploadProgress}%`);
+      //console.log(`Dosya: ${file.name} - Chunk ${chunkIndex}`);
+      //console.log(`Dosya: ${file.name} - Yüzde: ${uploadProgress}%`);
 
     } catch (error) {
       console.error(`Dosya ${file.name} yüklenirken hata oluştu:`, error);
@@ -308,8 +322,8 @@ async function uploadFiles(file) {
                 <div class="flex flex-col ml-4 w-full">
                   <div class="flex items-center">
                     <span class="text-sm">{{ file.name }}</span>
-                    <button @click="removeFile(index)"
-                      class="ml-auto font-extrabold text-red-500 hover:text-red-700">✕</button>
+                    <!-- <button @click="removeFile(index)"
+                      class="ml-auto font-extrabold text-red-500 hover:text-red-700">✕</button> -->
                   </div>
                   <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
                     <div :style="{ width: `${percentage[file.name]?.uploadProgress || 0}%` }"
